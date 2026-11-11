@@ -35,6 +35,7 @@ function applySettings() {
   document.getElementById('footer-wa').href = 'https://wa.me/' + storePhone();
   const hero = String(storeSettings.heroText || '').trim();
   if (hero) { const el = document.getElementById('hero-sub'); el.textContent = hero; el.style.whiteSpace = 'pre-line'; }
+  if (products.length) updateHeroImgs();
 }
 
 // ── PRODUCTS (REALTIME) ──
@@ -90,12 +91,18 @@ function renderProducts() {
   document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
 }
 
+// واجهة المجلة: أحدث 4 منتجات بصور، كل صورة تفتح منتجها
 function updateHeroImgs() {
   const imgs = products.filter((p) => thumbOf(p)).slice(0, 4);
   if (!imgs.length) return;
-  const cells = document.querySelectorAll('#hero-imgs .hero-img-cell');
+  const cells = document.querySelectorAll('#hero-imgs .mag-tile');
   imgs.forEach((p, i) => {
-    if (cells[i]) cells[i].innerHTML = `<img src="${esc(thumbOf(p))}" alt="${esc(p.name)}" style="width:100%;height:100%;object-fit:cover">`;
+    if (!cells[i]) return;
+    const badge = BADGES[p.badge] ? `<span class="cap-badge">${esc(BADGES[p.badge])}</span>` : '';
+    const price = showPrice(p) ? `<span class="cap-price">${esc(p.price)} د.ل</span>` : '';
+    cells[i].innerHTML = `<button type="button" class="mag-link" aria-label="${esc('افتح ' + p.name)}"><img src="${esc(thumbOf(p))}" alt="${esc(p.name)}"></button>
+      <figcaption>${badge}<span class="cap-name">${esc(p.name)}</span>${price}</figcaption>`;
+    cells[i].querySelector('.mag-link').addEventListener('click', () => openModal(p.id));
   });
 }
 
