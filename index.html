@@ -182,6 +182,28 @@ footer { background:var(--gray-dark); border-top:1px solid var(--border); paddin
 .cart-item-price { font-size:0.82rem; color:var(--brown-pale); }
 .cart-item-del { background:none; border:none; color:rgba(255,255,255,0.25); cursor:pointer; font-size:1rem; transition:color 0.2s; align-self:center; }
 .cart-item-del:hover { color:#e05555; }
+.qty-ctl { display:inline-flex; align-items:center; border:1px solid var(--border); margin-top:6px; }
+.qty-ctl button { background:none; border:none; color:var(--white); width:26px; height:24px; cursor:pointer; font-size:0.9rem; }
+.qty-ctl button:hover { background:var(--brown); }
+.qty-ctl span { min-width:24px; text-align:center; font-size:0.8rem; }
+.size-btn:disabled { opacity:0.3; text-decoration:line-through; cursor:not-allowed; }
+.size-btn:disabled:hover { background:none; border-color:var(--border); color:rgba(255,255,255,0.5); }
+.prod-badge.soldout { background:#333; }
+.prod-card.soldout .prod-img img { filter:grayscale(1) opacity(0.5); }
+.modal-thumbs { position:absolute; bottom:10px; left:10px; right:10px; display:flex; gap:6px; z-index:2; overflow-x:auto; }
+.modal-thumbs img { width:46px !important; height:46px !important; object-fit:cover; border:2px solid transparent; cursor:pointer; opacity:0.7; flex-shrink:0; }
+.modal-thumbs img.active { border-color:var(--brown-pale); opacity:1; }
+.modal-stock-note { font-size:0.72rem; color:var(--brown-pale); min-height:1em; }
+/* CHECKOUT */
+#checkout { display:none; padding:20px 24px; border-top:1px solid var(--border); background:var(--gray-mid); }
+#checkout.show { display:block; }
+#checkout h4 { font-family:'Playfair Display',serif; color:var(--brown-pale); margin-bottom:12px; }
+.co-field { margin-bottom:10px; }
+.co-field input, .co-field textarea { width:100%; background:var(--black); border:1px solid var(--border); color:var(--white); padding:10px 12px; font-family:'Cairo',sans-serif; font-size:0.85rem; }
+.co-field input:focus, .co-field textarea:focus { outline:none; border-color:var(--brown-pale); }
+.co-err { color:#e88; font-size:0.7rem; margin-top:3px; min-height:0.9em; }
+.co-done { text-align:center; padding:30px 10px; }
+.co-done .code { font-family:'Playfair Display',serif; font-size:1.4rem; color:var(--brown-pale); margin:10px 0; letter-spacing:2px; }
 .cart-footer { padding:20px 24px; border-top:1px solid var(--border); background:var(--gray-mid); }
 .cart-total { display:flex; justify-content:space-between; margin-bottom:16px; }
 .cart-total span { font-family:'Playfair Display',serif; font-size:1.1rem; color:var(--brown-pale); }
@@ -398,6 +420,7 @@ footer { background:var(--gray-dark); border-top:1px solid var(--border); paddin
       <div class="modal-price" id="modal-price"></div>
       <div class="modal-size-label">اختر المقاس</div>
       <div class="modal-sizes" id="modal-sizes"></div>
+      <div class="modal-stock-note" id="modal-stock-note"></div>
       <div class="modal-actions">
         <button class="btn-primary" onclick="addToCartFromModal()">🛒 أضف للسلة</button>
         <button class="btn-ghost" onclick="orderNowWA()">📱 اطلب عبر واتساب</button>
@@ -420,8 +443,18 @@ footer { background:var(--gray-dark); border-top:1px solid var(--border); paddin
       <span>المجموع:</span>
       <span id="cart-total">0 د.ل</span>
     </div>
-    <button class="cart-wa-btn" onclick="sendCartWA()">📱 إرسال الطلب عبر واتساب</button>
+    <button class="cart-wa-btn" onclick="openCheckout()">✅ إتمام الطلب</button>
     <button class="cart-clear-btn" onclick="clearCart()">🗑️ مسح السلة</button>
+  </div>
+  <div id="checkout">
+    <h4>بيانات التوصيل</h4>
+    <div class="co-field"><input id="co-name" maxlength="80" placeholder="الاسم" autocomplete="name"><div class="co-err" id="err-name"></div></div>
+    <div class="co-field"><input id="co-phone" inputmode="tel" maxlength="20" placeholder="رقم الهاتف 09xxxxxxxx" autocomplete="tel"><div class="co-err" id="err-phone"></div></div>
+    <div class="co-field"><input id="co-city" maxlength="60" placeholder="المدينة" value="طرابلس"><div class="co-err" id="err-city"></div></div>
+    <div class="co-field"><input id="co-address" maxlength="200" placeholder="العنوان بالتفصيل" autocomplete="street-address"><div class="co-err" id="err-address"></div></div>
+    <div class="co-field"><textarea id="co-note" maxlength="300" rows="2" placeholder="ملاحظة (اختياري)"></textarea><div class="co-err" id="err-note"></div></div>
+    <button class="cart-wa-btn" id="co-submit" onclick="submitOrder()">📱 تأكيد الطلب وإرساله عبر واتساب</button>
+    <button class="cart-clear-btn" onclick="closeCheckout()">رجوع</button>
   </div>
 </div>
 
@@ -432,277 +465,7 @@ footer { background:var(--gray-dark); border-top:1px solid var(--border); paddin
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
-<script>
-// ── FIREBASE INIT ──
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
-// ── STATE ──
-let products = [];
-let cart = JSON.parse(sessionStorage.getItem('xshoes_cart') || '[]');
-let currentProduct = null;
-let storeSettings = { phone:'0920007485', showPrices:true };
-
-// ── LOAD SETTINGS ──
-async function loadSettings() {
-  try {
-    const doc = await db.collection('settings').doc('store').get();
-    if (doc.exists) {
-      storeSettings = { ...storeSettings, ...doc.data() };
-      applySettings();
-    }
-  } catch(e) { console.log('Settings load error', e); }
-}
-
-function applySettings() {
-  const p = storeSettings.phone || '0920007485';
-  document.getElementById('nav-phone').textContent = p;
-  document.getElementById('banner-phone').textContent = p;
-  document.getElementById('footer-phone').textContent = p;
-  const wa = '218' + p.replace(/^0/,'');
-  document.getElementById('wa-link').href = 'https://wa.me/' + wa;
-  document.getElementById('footer-wa').href = 'https://wa.me/' + wa;
-}
-
-// ── LOAD PRODUCTS (REALTIME) ──
-function loadProducts() {
-  db.collection('products').orderBy('createdAt','desc').onSnapshot(snap => {
-    products = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    renderProducts();
-    updateHeroImgs();
-    hideLoading();
-  }, err => {
-    console.error(err);
-    hideLoading();
-  });
-}
-
-function hideLoading() {
-  const el = document.getElementById('loading');
-  el.style.opacity = '0';
-  setTimeout(() => el.style.display = 'none', 500);
-}
-
-// ── RENDER PRODUCTS ──
-function renderProducts() {
-  const grid = document.getElementById('products-grid');
-  const empty = document.getElementById('empty-state');
-  if (!products.length) { grid.innerHTML=''; empty.style.display='block'; return; }
-  empty.style.display = 'none';
-
-  grid.innerHTML = products.map(p => {
-    const img = p.images && p.images.length
-      ? `<img src="${p.images[0]}" alt="${p.name}" loading="lazy">`
-      : `<div class="prod-placeholder">👟</div>`;
-    const badge = p.badge ? `<div class="prod-badge ${p.badge}">${{new:'جديد',sale:'تخفيض',exclusive:'حصري'}[p.badge]||p.badge}</div>` : '';
-    const price = (storeSettings.showPrices !== false && p.showPrice && p.price)
-      ? `<div class="prod-price">${p.price}<small>د.ل</small></div>`
-      : `<div></div>`;
-    const sizes = (p.sizes||[]).slice(0,4).map(s=>`<div class="prod-size">${s}</div>`).join('');
-
-    return `<div class="prod-card reveal" onclick="openModal('${p.id}')">
-      <div class="prod-img">${img}${badge}</div>
-      <div class="prod-body">
-        <div class="prod-brand">${p.brand||'X Shoes'}</div>
-        <div class="prod-name">${p.name}</div>
-        <div class="prod-desc">${p.desc||'أحذية فاخرة بتصميم عصري'}</div>
-        <div class="prod-sizes">${sizes}${(p.sizes||[]).length>4?`<div class="prod-size">+${(p.sizes||[]).length-4}</div>`:''}</div>
-        <div class="prod-footer">
-          ${price}
-          <button class="prod-add" onclick="event.stopPropagation();quickAdd('${p.id}')">+</button>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-}
-
-function updateHeroImgs() {
-  const imgs = products.filter(p => p.images && p.images.length).slice(0,4);
-  if (!imgs.length) return;
-  const cells = document.querySelectorAll('#hero-imgs .hero-img-cell');
-  imgs.forEach((p,i) => {
-    if (cells[i]) cells[i].innerHTML = `<img src="${p.images[0]}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover">`;
-  });
-}
-
-// ── MODAL ──
-function openModal(id) {
-  currentProduct = products.find(p => p.id === id);
-  if (!currentProduct) return;
-  const p = currentProduct;
-  document.getElementById('modal-brand').textContent = p.brand || 'X Shoes';
-  document.getElementById('modal-name').textContent = p.name;
-  document.getElementById('modal-desc').textContent = p.desc || 'أحذية فاخرة بتصميم عصري ومريح';
-  document.getElementById('modal-price').textContent = (storeSettings.showPrices !== false && p.showPrice && p.price) ? p.price + ' د.ل' : '';
-
-  const side = document.getElementById('modal-img-side');
-  const ph = document.getElementById('modal-placeholder');
-  if (p.images && p.images.length) {
-    let existing = side.querySelector('img');
-    if (!existing) { existing = document.createElement('img'); existing.style.cssText='width:100%;height:100%;object-fit:cover'; side.insertBefore(existing, ph); }
-    existing.src = p.images[0];
-    ph.style.display = 'none';
-  } else {
-    const existing = side.querySelector('img');
-    if (existing) existing.remove();
-    ph.style.display = 'flex';
-  }
-
-  document.getElementById('modal-sizes').innerHTML = (p.sizes||['40','41','42','43','44','45']).map(s =>
-    `<button class="size-btn" onclick="selectSize(this)">${s}</button>`
-  ).join('');
-
-  document.getElementById('modal').classList.add('open');
-  document.getElementById('overlay').classList.add('show');
-}
-
-function closeModal() {
-  document.getElementById('modal').classList.remove('open');
-  document.getElementById('overlay').classList.remove('show');
-}
-
-function selectSize(btn) {
-  document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-}
-
-// ── CART ──
-function addToCartFromModal() {
-  if (!currentProduct) return;
-  const sizeBtn = document.querySelector('.size-btn.active');
-  const size = sizeBtn ? sizeBtn.textContent : null;
-  if (!size) { showToast('⚠️ اختر المقاس أولاً'); return; }
-  const product = currentProduct;
-  closeModal();
-  setTimeout(() => {
-    addToCart(product, size);
-    showToast(`✅ تمت الإضافة — ${product.name} — مقاس ${size}`);
-  }, 150);
-}
-
-function quickAdd(id) {
-  const p = products.find(x => x.id === id);
-  if (!p) return;
-  const firstSize = (p.sizes && p.sizes.length) ? p.sizes[0] : '42';
-  addToCart(p, firstSize);
-}
-
-function addToCart(p, size) {
-  cart.push({ id: p.id, name: p.name, brand: p.brand||'', price: p.price||'', showPrice: p.showPrice, size, image: (p.images&&p.images[0])||'' });
-  saveCart();
-  updateCartCount();
-  showToast(`✅ تمت الإضافة للسلة — ${p.name} مقاس ${size}`);
-}
-
-function saveCart() {
-  try {
-    sessionStorage.setItem('xshoes_cart', JSON.stringify(cart));
-  } catch(e) {
-    console.warn('sessionStorage unavailable — cart lives in memory only');
-  }
-}
-
-function updateCartCount() {
-  const el = document.getElementById('cart-count');
-  el.textContent = cart.length;
-  el.classList.remove('pop');
-  void el.offsetWidth;
-  el.classList.add('pop');
-}
-
-function openCart() {
-  renderCart();
-  document.getElementById('cart-panel').classList.add('open');
-  document.getElementById('overlay').classList.add('show');
-}
-
-function closeCart() {
-  document.getElementById('cart-panel').classList.remove('open');
-  document.getElementById('overlay').classList.remove('show');
-}
-
-function renderCart() {
-  const el = document.getElementById('cart-items');
-  const footer = document.getElementById('cart-footer');
-  if (!cart.length) {
-    el.innerHTML = '<div class="cart-empty"><div>🛒</div><p>السلة فارغة</p></div>';
-    footer.style.display = 'none'; return;
-  }
-  footer.style.display = 'block';
-  el.innerHTML = cart.map((item,i) => `
-    <div class="cart-item">
-      ${item.image ? `<img src="${item.image}" alt="">` : `<div class="cart-item-placeholder">👟</div>`}
-      <div class="cart-item-info">
-        <div class="cart-item-name">${item.name}</div>
-        <div class="cart-item-size">المقاس: ${item.size} · ${item.brand}</div>
-        <div class="cart-item-price">${item.showPrice && item.price ? item.price+' د.ل' : ''}</div>
-      </div>
-      <button class="cart-item-del" onclick="removeFromCart(${i})">✕</button>
-    </div>`).join('');
-
-  const total = cart.filter(i=>i.showPrice&&i.price).reduce((s,i)=>s+parseFloat(i.price||0),0);
-  document.getElementById('cart-total').textContent = total > 0 ? total.toFixed(0)+' د.ل' : '—';
-}
-
-function removeFromCart(i) {
-  cart.splice(i,1);
-  saveCart(); updateCartCount(); renderCart();
-}
-
-function clearCart() {
-  cart = []; saveCart(); updateCartCount(); renderCart();
-  showToast('🗑️ تم مسح السلة');
-}
-
-function sendCartWA() {
-  if (!cart.length) return;
-  const phone = '218' + (storeSettings.phone||'0920007485').replace(/^0/,'');
-  let msg = 'مرحباً، أريد طلب:\n\n';
-  cart.forEach((item,i) => {
-    msg += `${i+1}. ${item.name} (${item.brand}) — مقاس ${item.size}`;
-    if (item.showPrice && item.price) msg += ` — ${item.price} د.ل`;
-    msg += '\n';
-  });
-  msg += '\nشكراً 🙏';
-  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-}
-
-function orderNowWA() {
-  if (!currentProduct) return;
-  const p = currentProduct;
-  const sizeBtn = document.querySelector('.size-btn.active');
-  const size = sizeBtn ? sizeBtn.textContent : 'غير محدد';
-  const phone = '218' + (storeSettings.phone||'0920007485').replace(/^0/,'');
-  const msg = `مرحباً، أريد الاستفسار عن:\n${p.name} (${p.brand||''})\nالمقاس: ${size}`;
-  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-}
-
-// ── HELPERS ──
-function closeAll() {
-  closeModal(); closeCart();
-  document.getElementById('overlay').classList.remove('show');
-}
-
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2800);
-}
-
-const observer = new IntersectionObserver(entries => {
-  entries.forEach((e,i) => { if(e.isIntersecting) setTimeout(()=>e.target.classList.add('visible'),i*60); });
-}, { threshold:0.08 });
-document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-window.addEventListener('scroll', () => {
-  document.getElementById('main-nav').classList.toggle('scrolled', window.scrollY > 60);
-});
-
-// ── INIT ──
-updateCartCount();
-loadSettings();
-loadProducts();
-</script>
+<script src="js/core.js"></script>
+<script src="js/store.js"></script>
 </body>
 </html>

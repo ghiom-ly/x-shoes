@@ -132,6 +132,22 @@ select.inp-sm{cursor:pointer}
 .edit-banner{background:var(--brown);color:white;padding:10px 16px;font-size:0.8rem;font-weight:700;letter-spacing:1px;text-align:center;margin-bottom:16px;display:none}
 .edit-banner.show{display:block}
 
+/* STOCK */
+.stock-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.stock-cell{display:flex;flex-direction:column;font-size:0.7rem;color:rgba(255,255,255,0.45)}
+.stock-cell .inp-sm{margin-bottom:0;text-align:center;padding:7px}
+.img-main{position:absolute;bottom:3px;right:3px;background:var(--brown);color:white;font-size:0.55rem;padding:1px 5px}
+/* ORDERS */
+.order-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+.row-btn.on{border-color:var(--brown);color:var(--brown-pale);background:rgba(107,76,42,0.15)}
+a.row-btn{text-decoration:none;display:inline-block}
+.order-card{background:var(--gray-dark);border:1px solid var(--border);padding:16px;margin-bottom:8px}
+.order-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.order-head b{font-family:'Playfair Display',serif;color:var(--brown-pale);letter-spacing:1px}
+.order-body{display:grid;grid-template-columns:1fr 1fr auto;gap:14px;align-items:start;margin-bottom:12px}
+.order-items{list-style:none;font-size:0.8rem;color:rgba(255,255,255,0.65);line-height:1.8}
+@media(max-width:900px){.order-body{grid-template-columns:1fr}}
+
 @media(max-width:900px){.main{grid-template-columns:1fr}.sidebar{max-height:none;position:static}.stats-grid{grid-template-columns:1fr 1fr}.settings-grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -179,6 +195,11 @@ select.inp-sm{cursor:pointer}
         </div>
         <input class="inp-sm" id="f-price" placeholder="السعر بالدينار الليبي">
         <input class="inp-sm" id="f-sizes" placeholder="المقاسات: 40,41,42,43,44,45">
+        <div class="toggle-row">
+          <div class="tog on" id="t-stock" onclick="toggleStock(this)"></div>
+          <label>تتبّع المخزون لكل مقاس</label>
+        </div>
+        <div class="stock-grid" id="stock-inputs"></div>
         <select class="inp-sm" id="f-badge">
           <option value="">بدون شارة</option>
           <option value="new">🟢 جديد</option>
@@ -191,7 +212,7 @@ select.inp-sm{cursor:pointer}
         <div class="sec-label">صور المنتج</div>
         <div class="upload-box">
           <input type="file" accept="image/*" multiple onchange="handleUpload(event)">
-          <p>📁 اضغط لرفع الصور<br><small style="opacity:.4">PNG · JPG · WEBP</small></p>
+          <p>📁 اضغط لرفع الصور<br><small style="opacity:.4">PNG · JPG · WEBP — الصورة الأولى هي الرئيسية</small></p>
         </div>
         <div class="img-grid" id="img-preview"></div>
       </div>
@@ -206,6 +227,7 @@ select.inp-sm{cursor:pointer}
     <div class="content">
       <div class="tab-bar">
         <button class="tab active" onclick="showTab('products',this)">📦 المنتجات</button>
+        <button class="tab" onclick="showTab('orders',this)">🧾 الطلبيات<span id="orders-tab-count"></span></button>
         <button class="tab" onclick="showTab('settings',this)">⚙️ الإعدادات</button>
       </div>
 
@@ -214,10 +236,16 @@ select.inp-sm{cursor:pointer}
         <div class="stats-grid">
           <div class="stat-card"><div class="stat-num" id="stat-total">0</div><div class="stat-label">إجمالي المنتجات</div></div>
           <div class="stat-card"><div class="stat-num" id="stat-visible">0</div><div class="stat-label">بسعر ظاهر</div></div>
-          <div class="stat-card"><div class="stat-num" id="stat-new">0</div><div class="stat-label">جديد / حصري</div></div>
+          <div class="stat-card"><div class="stat-num" id="stat-new">0</div><div class="stat-label">نفدت كمياتها</div></div>
         </div>
         <div class="prod-list" id="prod-list"></div>
         <div class="empty" id="prod-empty" style="display:none"><div>📦</div><p>لا توجد منتجات — أضف من اليسار</p></div>
+      </div>
+
+      <!-- ORDERS TAB -->
+      <div class="page" id="tab-orders">
+        <div class="order-filters" id="order-filters"></div>
+        <div id="orders-list"></div>
       </div>
 
       <!-- SETTINGS TAB -->
@@ -245,10 +273,9 @@ select.inp-sm{cursor:pointer}
             <button class="p-btn" onclick="changePass()">تغيير كلمة المرور</button>
           </div>
           <div class="setting-card">
-            <h4>🌐 رابط الموقع</h4>
-            <p style="font-size:0.8rem;color:rgba(255,255,255,0.35);line-height:1.8;margin-bottom:12px">بعد الرفع على GitHub Pages سيكون الرابط:</p>
-            <div style="background:var(--gray-mid);padding:10px 12px;font-size:0.75rem;color:var(--brown-pale);letter-spacing:1px;word-break:break-all">https://USERNAME.github.io/xshoes/</div>
-            <p style="font-size:0.72rem;color:rgba(255,255,255,0.2);margin-top:8px">استبدل USERNAME باسمك على GitHub</p>
+            <h4>🖼️ صور المنتجات</h4>
+            <p style="font-size:0.8rem;color:rgba(255,255,255,0.35);line-height:1.8;margin-bottom:12px">يحوّل صور المنتجات القديمة للطريقة الجديدة: صورة صغيرة للقائمة وصور كاملة تُحمَّل عند فتح المنتج — الموقع يفتح أسرع.</p>
+            <button class="p-btn" id="migrate-btn" onclick="migrateImages()">🖼️ تحويل الصور</button>
           </div>
         </div>
       </div>
@@ -264,272 +291,7 @@ select.inp-sm{cursor:pointer}
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <script src="firebase-config.js"></script>
-<script>
-// ── FIREBASE ──
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
-
-// ── AUTH ──
-const PASS_KEY = 'xshoes_admin_pass';
-function getPass(){ return localStorage.getItem(PASS_KEY) || 'xshoes2026'; }
-
-function doLogin(){
-  const v = document.getElementById('pass-inp').value;
-  if(v === getPass()){
-    sessionStorage.setItem('xshoes_authed','1');
-    document.getElementById('login-screen').style.display='none';
-    document.getElementById('app').style.display='block';
-    init();
-  } else {
-    document.getElementById('login-err').textContent='كلمة المرور غير صحيحة';
-  }
-}
-document.getElementById('pass-inp').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
-
-function logout(){
-  sessionStorage.removeItem('xshoes_authed');
-  location.reload();
-}
-
-// Auto-login if session exists
-if(sessionStorage.getItem('xshoes_authed')==='1'){
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('app').style.display='block';
-}
-
-function changePass(){
-  const np = document.getElementById('cfg-new-pass').value.trim();
-  if(!np){ showToast('⚠️ أدخل كلمة المرور الجديدة'); return; }
-  localStorage.setItem(PASS_KEY,np);
-  document.getElementById('cfg-new-pass').value='';
-  showToast('✅ تم تغيير كلمة المرور');
-}
-
-// ── STATE ──
-let products = [];
-let uploadedImgs = [];
-let editingId = null;
-let storeSettings = {};
-
-// ── INIT ──
-function init(){
-  loadSettings();
-  loadProducts();
-}
-if(sessionStorage.getItem('xshoes_authed')==='1') init();
-
-// ── SETTINGS ──
-async function loadSettings(){
-  try {
-    const doc = await db.collection('settings').doc('store').get();
-    if(doc.exists){
-      storeSettings = doc.data();
-      document.getElementById('cfg-phone').value = storeSettings.phone||'0920007485';
-      document.getElementById('cfg-address').value = storeSettings.address||'جنزور سيمافرو';
-      document.getElementById('cfg-delivery').value = storeSettings.delivery||'توصيل داخل وخارج طرابلس';
-      if(storeSettings.showPrices===false) document.getElementById('cfg-show-prices').classList.remove('on');
-    }
-  } catch(e){ console.log(e); }
-}
-
-async function saveSettings(){
-  const settings = {
-    phone: document.getElementById('cfg-phone').value.trim(),
-    address: document.getElementById('cfg-address').value.trim(),
-    delivery: document.getElementById('cfg-delivery').value.trim(),
-    showPrices: document.getElementById('cfg-show-prices').classList.contains('on'),
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  };
-  try {
-    await db.collection('settings').doc('store').set(settings);
-    showToast('✅ تم حفظ الإعدادات');
-  } catch(e){ showToast('❌ خطأ في الحفظ'); console.error(e); }
-}
-
-// ── LOAD PRODUCTS ──
-function loadProducts(){
-  db.collection('products').orderBy('createdAt','desc').onSnapshot(snap=>{
-    products = snap.docs.map(d=>({id:d.id,...d.data()}));
-    renderList();
-    updateStats();
-  });
-}
-
-// ── RENDER LIST ──
-function renderList(){
-  const el = document.getElementById('prod-list');
-  const empty = document.getElementById('prod-empty');
-  if(!products.length){ el.innerHTML=''; empty.style.display='block'; return; }
-  empty.style.display='none';
-  el.innerHTML = products.map(p=>{
-    const img = p.images&&p.images.length
-      ? `<img src="${p.images[0]}" alt="">`
-      : `<div class="ph">👟</div>`;
-    const priceDisplay = p.showPrice&&p.price ? p.price+' د.ل' : '—';
-    const badge = p.badge||'';
-    const badgeLabel = {new:'جديد',sale:'تخفيض',exclusive:'حصري'}[badge]||'—';
-    return `<div class="prod-row">
-      ${img}
-      <div><div class="pr-name">${p.name}</div><div class="pr-meta">${p.brand||'X Shoes'} · مقاسات: ${(p.sizes||[]).join(', ')}</div></div>
-      <div class="pr-price">${priceDisplay}</div>
-      <div class="pr-badge ${badge||'none'}">${badgeLabel}</div>
-      <div class="row-actions">
-        <button class="row-btn" onclick="editProduct('${p.id}')">✏️ تعديل</button>
-        <button class="row-btn del" onclick="deleteProduct('${p.id}','${p.name}')">🗑️</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function updateStats(){
-  document.getElementById('stat-total').textContent = products.length;
-  document.getElementById('stat-visible').textContent = products.filter(p=>p.showPrice&&p.price).length;
-  document.getElementById('stat-new').textContent = products.filter(p=>p.badge==='new'||p.badge==='exclusive').length;
-}
-
-// ── COMPRESS IMAGE ──
-function compressImage(base64, maxW=800, quality=0.75){
-  return new Promise(resolve=>{
-    if(base64.startsWith('http')){ resolve(base64); return; }
-    const img = new Image();
-    img.onload = ()=>{
-      const canvas = document.createElement('canvas');
-      let w=img.width, h=img.height;
-      if(w>maxW){ h=Math.round(h*maxW/w); w=maxW; }
-      canvas.width=w; canvas.height=h;
-      canvas.getContext('2d').drawImage(img,0,0,w,h);
-      resolve(canvas.toDataURL('image/jpeg', quality));
-    };
-    img.src = base64;
-  });
-}
-
-// ── ADD PRODUCT ──
-async function submitProduct(){
-  const name = document.getElementById('f-name').value.trim();
-  if(!name){ showToast('⚠️ أدخل اسم المنتج'); return; }
-
-  const btn = document.getElementById('submit-btn');
-  btn.textContent = '⏳ جاري الحفظ...'; btn.disabled = true;
-
-  try {
-    // Compress images and store as base64 directly in Firestore
-    const imageUrls = [];
-    for(const img of uploadedImgs){
-      const compressed = await compressImage(img);
-      imageUrls.push(compressed);
-    }
-
-    const data = {
-      name,
-      brand: document.getElementById('f-brand').value.trim()||'X Shoes',
-      desc: document.getElementById('f-desc').value.trim(),
-      price: document.getElementById('f-price').value.trim(),
-      showPrice: document.getElementById('t-price').classList.contains('on'),
-      sizes: document.getElementById('f-sizes').value.split(',').map(s=>s.trim()).filter(Boolean),
-      badge: document.getElementById('f-badge').value,
-      images: imageUrls,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-
-    if(editingId){
-      await db.collection('products').doc(editingId).update(data);
-      showToast('✅ تم تعديل المنتج');
-      cancelEdit();
-    } else {
-      data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-      await db.collection('products').add(data);
-      showToast('✅ تم إضافة المنتج');
-      resetForm();
-    }
-  } catch(e){
-    console.error(e);
-    showToast('❌ خطأ: '+e.message);
-  }
-
-  btn.textContent = editingId ? '💾 حفظ التعديل' : '➕ إضافة المنتج';
-  btn.disabled = false;
-}
-
-// ── EDIT ──
-function editProduct(id){
-  const p = products.find(x=>x.id===id);
-  if(!p) return;
-  editingId = id;
-  document.getElementById('f-name').value = p.name||'';
-  document.getElementById('f-brand').value = p.brand||'';
-  document.getElementById('f-desc').value = p.desc||'';
-  document.getElementById('f-price').value = p.price||'';
-  document.getElementById('f-sizes').value = (p.sizes||[]).join(',');
-  document.getElementById('f-badge').value = p.badge||'';
-  if(p.showPrice) document.getElementById('t-price').classList.add('on');
-  else document.getElementById('t-price').classList.remove('on');
-  uploadedImgs = [...(p.images||[])];
-  renderImgPreview();
-  document.getElementById('submit-btn').textContent = '💾 حفظ التعديل';
-  document.getElementById('cancel-btn').style.display = 'block';
-  document.getElementById('edit-banner').classList.add('show');
-  document.getElementById('sidebar').scrollTo({top:0,behavior:'smooth'});
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-
-function cancelEdit(){
-  editingId = null;
-  resetForm();
-  document.getElementById('submit-btn').textContent = '➕ إضافة المنتج';
-  document.getElementById('cancel-btn').style.display = 'none';
-  document.getElementById('edit-banner').classList.remove('show');
-}
-
-function resetForm(){
-  ['f-name','f-brand','f-desc','f-price','f-sizes'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('f-badge').value='';
-  document.getElementById('t-price').classList.add('on');
-  uploadedImgs=[];
-  renderImgPreview();
-}
-
-// ── DELETE ──
-async function deleteProduct(id,name){
-  if(!confirm(`حذف "${name}"؟`)) return;
-  try {
-    await db.collection('products').doc(id).delete();
-    showToast('🗑️ تم الحذف');
-  } catch(e){ showToast('❌ خطأ في الحذف'); }
-}
-
-// ── IMAGES ──
-function handleUpload(e){
-  Array.from(e.target.files).forEach(f=>{
-    const reader = new FileReader();
-    reader.onload = ev => { uploadedImgs.push(ev.target.result); renderImgPreview(); };
-    reader.readAsDataURL(f);
-  });
-}
-function renderImgPreview(){
-  document.getElementById('img-preview').innerHTML = uploadedImgs.map((src,i)=>`
-    <div class="img-thumb">
-      <img src="${src}">
-      <button class="img-del" onclick="removeImg(${i})">✕</button>
-    </div>`).join('');
-}
-function removeImg(i){ uploadedImgs.splice(i,1); renderImgPreview(); }
-
-// ── TABS ──
-function showTab(id,btn){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('tab-'+id).classList.add('active');
-  btn.classList.add('active');
-}
-
-// ── TOAST ──
-function showToast(msg){
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2800);
-}
-</script>
+<script src="js/core.js"></script>
+<script src="js/admin.js"></script>
 </body>
 </html>

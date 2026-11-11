@@ -1,0 +1,5 @@
+{
+  "name": "x-shoes",
+  "private": true,
+  "scripts": { "test": "node --test tests/core.test.js" }
+}
