@@ -34,7 +34,8 @@ function applySettings() {
   document.getElementById('wa-link').href = 'https://wa.me/' + storePhone();
   document.getElementById('footer-wa').href = 'https://wa.me/' + storePhone();
   const hero = String(storeSettings.heroText || '').trim();
-  if (hero) { const el = document.getElementById('hero-sub'); el.textContent = hero; el.style.whiteSpace = 'pre-line'; }
+  const heroEl = document.getElementById('hero-sub');
+  if (hero && heroEl) { heroEl.textContent = hero; heroEl.style.whiteSpace = 'pre-line'; }
   updateHeroImgs();
   renderCategories();
 }
@@ -43,9 +44,8 @@ function applySettings() {
 function loadProducts() {
   db.collection('products').orderBy('createdAt', 'desc').onSnapshot((snap) => {
     products = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    renderCategories();
-    renderProducts();
-    updateHeroImgs();
+    // كل جزء لحاله: خطأ في جزء ما يوقفش باقي الصفحة، وشاشة التحميل تنسكر دايماً
+    [renderCategories, renderProducts, updateHeroImgs].forEach((fn) => { try { fn(); } catch (e) { console.error(e); } });
     hideLoading();
     if (currentProduct) {   // تحديث المخزون في النافذة المفتوحة
       const fresh = products.find((p) => p.id === currentProduct.id);
@@ -53,6 +53,8 @@ function loadProducts() {
     }
   }, (err) => { console.error(err); hideLoading(); });
 }
+// احتياط: لو الاتصال تأخر، شاشة التحميل تنسكر بعد 8 ثواني
+setTimeout(() => hideLoading(), 8000);
 function hideLoading() {
   const el = document.getElementById('loading');
   el.style.opacity = '0';
@@ -68,6 +70,7 @@ function renderCategories() {
   if (currentCategory && !cats.some((c) => c.name === currentCategory)) currentCategory = '';
   const nav = document.getElementById('cat-nav');
   const bar = document.getElementById('cat-bar');
+  if (!nav || !bar) return;   // صفحة قديمة من الكاش بدون مكان للأقسام
   nav.hidden = bar.hidden = !cats.length;
   nav.innerHTML = cats.map((c) => `<button type="button" data-cat="${esc(c.name)}">${esc(c.name)}<sup>${c.count}</sup></button>`).join('');
   bar.innerHTML = [{ name: '', label: 'الكل', count: products.length }, ...cats.map((c) => ({ ...c, label: c.name }))]
@@ -78,7 +81,8 @@ function renderCategories() {
 }
 function selectCategory(name, scroll) {
   currentCategory = name;
-  document.getElementById('collection-title').textContent = name || 'الكولكشن';
+  const title = document.getElementById('collection-title');
+  if (title) title.textContent = name || 'الكولكشن';
   renderCategories();
   renderProducts();
   if (scroll) document.getElementById('collection').scrollIntoView({ behavior: 'smooth' });
