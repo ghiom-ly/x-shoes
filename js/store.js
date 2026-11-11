@@ -35,7 +35,7 @@ function applySettings() {
   document.getElementById('footer-wa').href = 'https://wa.me/' + storePhone();
   const hero = String(storeSettings.heroText || '').trim();
   if (hero) { const el = document.getElementById('hero-sub'); el.textContent = hero; el.style.whiteSpace = 'pre-line'; }
-  if (products.length) updateHeroImgs();
+  updateHeroImgs();
 }
 
 // ── PRODUCTS (REALTIME) ──
@@ -91,19 +91,33 @@ function renderProducts() {
   document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
 }
 
-// واجهة المجلة: أحدث 4 منتجات بصور، كل صورة تفتح منتجها
+// صور الواجهة اللي يختارها صاحب المتجر من الإعدادات (settings/hero-0 … hero-3)
+let heroCustom = [null, null, null, null];
+async function loadHeroImages() {
+  try {
+    const docs = await Promise.all([0, 1, 2, 3].map((i) => db.collection('settings').doc('hero-' + i).get()));
+    heroCustom = docs.map((d) => (d.exists && d.data().data) || null);
+    updateHeroImgs();
+  } catch (e) { console.log('Hero images load error', e); }
+}
+
+// واجهة المجلة: الصورة المختارة من الإعدادات، وإلا أحدث منتج بصورة (يفتح منتجه)
 function updateHeroImgs() {
-  const imgs = products.filter((p) => thumbOf(p)).slice(0, 4);
-  if (!imgs.length) return;
-  const cells = document.querySelectorAll('#hero-imgs .mag-tile');
-  imgs.forEach((p, i) => {
-    if (!cells[i]) return;
-    const badge = BADGES[p.badge] ? `<span class="cap-badge">${esc(BADGES[p.badge])}</span>` : '';
-    const price = showPrice(p) ? `<span class="cap-price">${esc(p.price)} د.ل</span>` : '';
-    cells[i].innerHTML = `<button type="button" class="mag-link" aria-label="${esc('افتح ' + p.name)}"><img src="${esc(thumbOf(p))}" alt="${esc(p.name)}"></button>
-      <figcaption>${badge}<span class="cap-name">${esc(p.name)}</span>${price}</figcaption>`;
-    cells[i].querySelector('.mag-link').addEventListener('click', () => openModal(p.id));
+  const pool = products.filter((p) => thumbOf(p));
+  let next = 0;
+  document.querySelectorAll('#hero-imgs .mag-tile').forEach((cell, i) => {
+    if (heroCustom[i]) { cell.innerHTML = `<img class="mag-img" src="${esc(heroCustom[i])}" alt="">`; return; }
+    const p = pool[next++];
+    if (!p) return;
+    fillHeroTile(cell, p);
   });
+}
+function fillHeroTile(cell, p) {
+  const badge = BADGES[p.badge] ? `<span class="cap-badge">${esc(BADGES[p.badge])}</span>` : '';
+  const price = showPrice(p) ? `<span class="cap-price">${esc(p.price)} د.ل</span>` : '';
+  cell.innerHTML = `<button type="button" class="mag-link" aria-label="${esc('افتح ' + p.name)}"><img src="${esc(thumbOf(p))}" alt="${esc(p.name)}"></button>
+    <figcaption>${badge}<span class="cap-name">${esc(p.name)}</span>${price}</figcaption>`;
+  cell.querySelector('.mag-link').addEventListener('click', () => openModal(p.id));
 }
 
 // ── MODAL + GALLERY ──
@@ -399,3 +413,4 @@ window.addEventListener('scroll', () => {
 updateCartCount();
 loadSettings();
 loadProducts();
+loadHeroImages();

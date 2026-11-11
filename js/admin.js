@@ -59,6 +59,7 @@ function init() {
   started = true;
   loadSettings();
   loadProducts();
+  loadHeroSlots();
   loadOrders();
 }
 
@@ -203,6 +204,58 @@ function readStock() {
   const out = {};
   document.querySelectorAll('#stock-inputs input').forEach((i) => { out[i.dataset.key] = Math.max(0, parseInt(i.value, 10) || 0); });
   return out;
+}
+
+// ── صور الواجهة ──
+const HERO_IMG = { maxW: 1200, quality: 0.78 };
+const HERO_SLOTS = ['الصورة 1 — في النص فوق', 'الصورة 2 — الكبيرة', 'الصورة 3 — في النص تحت', 'الصورة 4 — الصغيرة (ما تظهرش في الهاتف)'];
+let heroSlots = [null, null, null, null];
+async function loadHeroSlots() {
+  try {
+    const docs = await Promise.all(HERO_SLOTS.map((_, i) => db.collection('settings').doc('hero-' + i).get()));
+    heroSlots = docs.map((d) => (d.exists && d.data().data) || null);
+  } catch (e) { console.log(e); }
+  renderHeroSlots();
+}
+function renderHeroSlots() {
+  const box = document.getElementById('hero-slots');
+  box.innerHTML = HERO_SLOTS.map((label, i) => `
+    <div class="hero-slot">
+      <div class="hero-slot-img">${heroSlots[i] ? `<img src="${esc(heroSlots[i])}" alt="">` : '<span>تلقائي من المنتجات</span>'}</div>
+      <div class="hero-slot-label">${esc(label)}</div>
+      <label class="btn btn-line btn-sm">${heroSlots[i] ? 'غيّر الصورة' : 'اختر صورة'}<input type="file" accept="image/*" hidden data-slot="${i}"></label>
+      ${heroSlots[i] ? `<button type="button" class="btn btn-text btn-sm" data-clear="${i}">رجّعها تلقائي</button>` : ''}
+    </div>`).join('');
+  box.querySelectorAll('input[data-slot]').forEach((inp) => inp.addEventListener('change', () => {
+    if (inp.files[0]) setHeroSlot(+inp.dataset.slot, inp.files[0]);
+  }));
+  box.querySelectorAll('[data-clear]').forEach((b) => b.addEventListener('click', () => clearHeroSlot(+b.dataset.clear)));
+}
+function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = () => reject(new Error('ما قدرناش نقرأ الصورة'));
+    r.readAsDataURL(file);
+  });
+}
+async function setHeroSlot(i, file) {
+  showToast('جاري رفع الصورة…');
+  try {
+    const data = await compressImage(await readFileAsDataURL(file), HERO_IMG);
+    await db.collection('settings').doc('hero-' + i).set({ data, updatedAt: FV.serverTimestamp() });
+    heroSlots[i] = data;
+    renderHeroSlots();
+    showToast('تم حفظ صورة الواجهة');
+  } catch (e) { console.error(e); showToast('ما قدرناش نحفظ الصورة، جرّب صورة ثانية'); }
+}
+async function clearHeroSlot(i) {
+  try {
+    await db.collection('settings').doc('hero-' + i).delete();
+    heroSlots[i] = null;
+    renderHeroSlots();
+    showToast('رجعت تلقائي من المنتجات');
+  } catch (e) { console.error(e); showToast('خطأ في الحفظ'); }
 }
 
 // ── IMAGES ──
