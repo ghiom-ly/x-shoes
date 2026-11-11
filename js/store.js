@@ -33,6 +33,8 @@ function applySettings() {
   ['nav-phone', 'banner-phone', 'footer-phone'].forEach((id) => { document.getElementById(id).textContent = p; });
   document.getElementById('wa-link').href = 'https://wa.me/' + storePhone();
   document.getElementById('footer-wa').href = 'https://wa.me/' + storePhone();
+  const hero = String(storeSettings.heroText || '').trim();
+  if (hero) { const el = document.getElementById('hero-sub'); el.textContent = hero; el.style.whiteSpace = 'pre-line'; }
 }
 
 // ── PRODUCTS (REALTIME) ──

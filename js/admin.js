@@ -63,14 +63,17 @@ function init() {
 }
 
 // ── SETTINGS ──
+const DEFAULT_HERO = ['موديلات تواكب كل الصيحات، من الكلاسيكي إلى الرياضي، وبأكثر من لون.', 'توصيل داخل طرابلس وخارجها، والدفع نقداً أو موبي كاش.'].join(String.fromCharCode(10));
 async function loadSettings() {
   try {
     const doc = await db.collection('settings').doc('store').get();
+    document.getElementById('cfg-hero').value = DEFAULT_HERO;
     if (doc.exists) {
       storeSettings = doc.data();
       document.getElementById('cfg-phone').value = storeSettings.phone || '0920007485';
       document.getElementById('cfg-address').value = storeSettings.address || 'جنزور سيمافرو';
       document.getElementById('cfg-delivery').value = storeSettings.delivery || 'توصيل داخل وخارج طرابلس';
+      if (String(storeSettings.heroText || '').trim()) document.getElementById('cfg-hero').value = storeSettings.heroText;
       if (storeSettings.showPrices === false) document.getElementById('cfg-show-prices').classList.remove('on');
     }
   } catch (e) { console.log(e); }
@@ -82,6 +85,7 @@ async function saveSettings() {
     address: document.getElementById('cfg-address').value.trim(),
     delivery: document.getElementById('cfg-delivery').value.trim(),
     showPrices: document.getElementById('cfg-show-prices').classList.contains('on'),
+    heroText: document.getElementById('cfg-hero').value.trim().slice(0, 400),
     updatedAt: FV.serverTimestamp(),
   };
   try {

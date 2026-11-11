@@ -119,6 +119,13 @@
           <button class="btn btn-solid" onclick="saveSettings()">حفظ</button>
         </div>
         <div class="setting-card">
+          <h4>نص الواجهة</h4>
+          <label class="fl" for="cfg-hero">النص تحت العنوان في أول الموقع</label>
+          <textarea class="inp" id="cfg-hero" rows="4" maxlength="400"></textarea>
+          <p class="hint">كل سطر جديد يظهر في سطر لحاله. لو فرّغته يرجع النص الأصلي.</p>
+          <button class="btn btn-solid" onclick="saveSettings()">حفظ</button>
+        </div>
+        <div class="setting-card">
           <h4>الأسعار</h4>
           <div class="toggle-row"><div class="tog on" id="cfg-show-prices" onclick="this.classList.toggle('on')" role="switch" tabindex="0"></div><span>إظهار الأسعار في الموقع</span></div>
           <p class="hint">لما تخفيها، الزبون يسأل عن السعر على واتساب.</p>
