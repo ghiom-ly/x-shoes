@@ -3,293 +3,144 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
 <title>X Shoes — لوحة التحكم</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-<style>
-:root {
-  --black:#0d0b09; --brown:#6b4c2a; --brown-light:#8b6340;
-  --brown-pale:#c9a882; --white:#faf7f3;
-  --gray-dark:#1a1714; --gray-mid:#2a2520; --gray-light:#3a322a;
-  --border:rgba(107,76,42,0.25); --green:#1a7a3c; --red:#6b2020;
-}
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--black);color:var(--white);font-family:'Cairo',sans-serif;min-height:100vh}
-
-/* LOGIN */
-#login-screen{position:fixed;inset:0;background:var(--black);z-index:1000;display:flex;align-items:center;justify-content:center}
-.login-card{background:var(--gray-dark);border:1px solid var(--border);padding:50px 44px;width:360px;text-align:center}
-.login-logo{font-family:'Playfair Display',serif;font-size:2rem;font-weight:900;color:var(--brown-pale);margin-bottom:6px;letter-spacing:3px}
-.login-sub{font-size:0.7rem;letter-spacing:4px;color:rgba(255,255,255,0.2);text-transform:uppercase;margin-bottom:36px}
-.inp{width:100%;background:var(--gray-mid);border:1px solid var(--border);color:var(--white);padding:13px 16px;font-family:'Cairo',sans-serif;font-size:0.9rem;outline:none;transition:border-color 0.3s;text-align:right;margin-bottom:12px}
-.inp:focus{border-color:var(--brown)}
-.btn{width:100%;background:var(--brown);color:white;border:none;padding:14px;font-family:'Cairo',sans-serif;font-weight:700;font-size:0.9rem;cursor:pointer;letter-spacing:2px;transition:background 0.3s;margin-top:4px}
-.btn:hover{background:var(--brown-light)}
-.err{color:#e05555;font-size:0.75rem;min-height:18px;margin-top:-6px;margin-bottom:8px}
-
-/* LAYOUT */
-#app{display:none;min-height:100vh}
-header{background:var(--gray-dark);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
-.header-logo{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--brown-pale);letter-spacing:2px}
-.header-right{display:flex;gap:12px;align-items:center}
-.header-right a{color:rgba(255,255,255,0.35);text-decoration:none;font-size:0.75rem;letter-spacing:2px;text-transform:uppercase;transition:color 0.3s}
-.header-right a:hover{color:var(--brown-pale)}
-.logout-btn{background:transparent;border:1px solid var(--border);color:rgba(255,255,255,0.3);padding:7px 16px;font-family:'Cairo',sans-serif;font-size:0.75rem;cursor:pointer;transition:all 0.3s}
-.logout-btn:hover{border-color:#e05555;color:#e05555}
-
-.main{display:grid;grid-template-columns:380px 1fr;min-height:calc(100vh - 65px)}
-
-/* SIDEBAR */
-.sidebar{background:var(--gray-dark);border-left:1px solid var(--border);padding:28px 24px;overflow-y:auto;max-height:calc(100vh - 65px);position:sticky;top:65px}
-.sec-label{font-size:0.62rem;font-weight:700;letter-spacing:3px;color:var(--brown-pale);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.sec-label::after{content:'';flex:1;height:1px;background:var(--border)}
-.form-sec{margin-bottom:26px;padding-bottom:24px;border-bottom:1px solid var(--border)}
-.form-sec:last-child{border-bottom:none;margin-bottom:0}
-
-.inp-sm{width:100%;background:var(--gray-mid);border:1px solid var(--border);color:var(--white);padding:10px 12px;font-family:'Cairo',sans-serif;font-size:0.83rem;outline:none;transition:border-color 0.3s;text-align:right;margin-bottom:10px}
-.inp-sm:focus{border-color:var(--brown)}
-textarea.inp-sm{resize:vertical;min-height:72px}
-select.inp-sm{cursor:pointer}
-
-.row{display:flex;gap:10px;align-items:center;margin-bottom:10px}
-.row label{font-size:0.78rem;color:rgba(255,255,255,0.45);min-width:80px;flex-shrink:0}
-
-.toggle-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.toggle-row label{font-size:0.8rem;color:rgba(255,255,255,0.5)}
-.tog{position:relative;width:44px;height:24px;background:var(--gray-light);border:1px solid var(--border);cursor:pointer;transition:background 0.3s;flex-shrink:0}
-.tog.on{background:var(--brown);border-color:var(--brown)}
-.tog::after{content:'';position:absolute;width:18px;height:18px;background:white;top:2px;right:2px;transition:right 0.3s}
-.tog.on::after{right:calc(100% - 20px)}
-
-.upload-box{border:1px dashed var(--border);padding:18px;text-align:center;cursor:pointer;transition:border-color 0.3s;margin-bottom:10px;position:relative}
-.upload-box:hover{border-color:var(--brown)}
-.upload-box input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.upload-box p{color:rgba(255,255,255,0.25);font-size:0.78rem}
-
-.img-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
-.img-thumb{position:relative;aspect-ratio:1;overflow:hidden;background:var(--gray-mid)}
-.img-thumb img{width:100%;height:100%;object-fit:cover}
-.img-del{position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.75);border:none;color:white;width:20px;height:20px;font-size:0.65rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
-
-.p-btn{width:100%;background:var(--brown);color:white;border:none;padding:11px;font-family:'Cairo',sans-serif;font-weight:700;font-size:0.83rem;cursor:pointer;letter-spacing:1px;transition:background 0.3s;margin-top:4px}
-.p-btn:hover{background:var(--brown-light)}
-.p-btn.ghost{background:transparent;border:1px solid var(--border);color:rgba(255,255,255,0.4)}
-.p-btn.ghost:hover{border-color:var(--brown);color:white}
-.p-btn.danger{background:var(--red)}
-.p-btn.danger:hover{background:#8b2020}
-.p-btn.green{background:var(--green)}
-.p-btn.green:hover{background:#1f9648}
-
-/* CONTENT */
-.content{padding:32px;overflow-y:auto}
-.page{display:none}
-.page.active{display:block}
-
-.tab-bar{display:flex;gap:0;margin-bottom:28px;border-bottom:1px solid var(--border)}
-.tab{background:none;border:none;color:rgba(255,255,255,0.3);padding:12px 22px;font-family:'Cairo',sans-serif;font-size:0.8rem;font-weight:700;letter-spacing:2px;cursor:pointer;text-transform:uppercase;border-bottom:2px solid transparent;transition:all 0.3s}
-.tab.active{color:var(--brown-pale);border-bottom-color:var(--brown)}
-.tab:hover{color:var(--white)}
-
-/* PRODUCTS TABLE */
-.prod-list{display:flex;flex-direction:column;gap:2px}
-.prod-row{background:var(--gray-dark);border:1px solid var(--border);display:grid;grid-template-columns:60px 1fr auto auto auto;gap:14px;align-items:center;padding:14px 16px;transition:border-color 0.3s}
-.prod-row:hover{border-color:var(--brown)}
-.prod-row img{width:60px;height:60px;object-fit:cover;background:var(--gray-mid)}
-.prod-row .ph{width:60px;height:60px;background:var(--gray-mid);display:flex;align-items:center;justify-content:center;font-size:1.5rem}
-.pr-name{font-weight:700;font-size:0.88rem;margin-bottom:3px}
-.pr-meta{font-size:0.72rem;color:rgba(255,255,255,0.3)}
-.pr-price{font-size:0.85rem;color:var(--brown-pale);text-align:center;min-width:70px}
-.pr-badge{padding:4px 10px;font-size:0.62rem;font-weight:700;letter-spacing:2px;text-transform:uppercase}
-.pr-badge.new{background:#2a4a2a;color:#7fc87f}
-.pr-badge.sale{background:#4a2a2a;color:#c87f7f}
-.pr-badge.exclusive{background:#2a2a4a;color:#7f7fc8}
-.pr-badge.none{background:var(--gray-mid);color:rgba(255,255,255,0.2)}
-.row-actions{display:flex;gap:6px}
-.row-btn{background:none;border:1px solid var(--border);color:rgba(255,255,255,0.35);padding:6px 12px;font-size:0.72rem;cursor:pointer;transition:all 0.2s;font-family:'Cairo',sans-serif}
-.row-btn:hover{border-color:var(--brown);color:white}
-.row-btn.del:hover{border-color:#e05555;color:#e05555}
-
-/* STATS */
-.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:32px}
-.stat-card{background:var(--gray-dark);border:1px solid var(--border);padding:22px 20px}
-.stat-num{font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:900;color:var(--brown-pale);margin-bottom:4px}
-.stat-label{font-size:0.7rem;letter-spacing:3px;color:rgba(255,255,255,0.3);text-transform:uppercase}
-
-/* SETTINGS */
-.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-.setting-card{background:var(--gray-dark);border:1px solid var(--border);padding:24px}
-.setting-card h4{font-family:'Playfair Display',serif;color:var(--brown-pale);margin-bottom:18px;font-size:1rem}
-
-/* EMPTY */
-.empty{text-align:center;padding:70px 20px;color:rgba(255,255,255,0.2)}
-.empty div{font-size:3rem;margin-bottom:14px}
-
-/* TOAST */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(70px);background:var(--brown);color:white;padding:13px 26px;font-weight:700;font-size:0.82rem;letter-spacing:1px;z-index:2000;transition:transform 0.35s;pointer-events:none}
-.toast.show{transform:translateX(-50%) translateY(0)}
-
-/* EDIT HIGHLIGHT */
-.sidebar.edit-mode{border-left-color:var(--brown-pale)}
-.edit-banner{background:var(--brown);color:white;padding:10px 16px;font-size:0.8rem;font-weight:700;letter-spacing:1px;text-align:center;margin-bottom:16px;display:none}
-.edit-banner.show{display:block}
-
-/* STOCK */
-.stock-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
-.stock-cell{display:flex;flex-direction:column;font-size:0.7rem;color:rgba(255,255,255,0.45)}
-.stock-cell .inp-sm{margin-bottom:0;text-align:center;padding:7px}
-.img-main{position:absolute;bottom:3px;right:3px;background:var(--brown);color:white;font-size:0.55rem;padding:1px 5px}
-/* ORDERS */
-.order-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
-.row-btn.on{border-color:var(--brown);color:var(--brown-pale);background:rgba(107,76,42,0.15)}
-a.row-btn{text-decoration:none;display:inline-block}
-.order-card{background:var(--gray-dark);border:1px solid var(--border);padding:16px;margin-bottom:8px}
-.order-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
-.order-head b{font-family:'Playfair Display',serif;color:var(--brown-pale);letter-spacing:1px}
-.order-body{display:grid;grid-template-columns:1fr 1fr auto;gap:14px;align-items:start;margin-bottom:12px}
-.order-items{list-style:none;font-size:0.8rem;color:rgba(255,255,255,0.65);line-height:1.8}
-@media(max-width:900px){.order-body{grid-template-columns:1fr}}
-
-@media(max-width:900px){.main{grid-template-columns:1fr}.sidebar{max-height:none;position:static}.stats-grid{grid-template-columns:1fr 1fr}.settings-grid{grid-template-columns:1fr}}
-</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=Readex+Pro:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/admin.css">
 </head>
-<body>
+<body data-tab="products">
 
-<!-- LOGIN -->
+<!-- الدخول -->
 <div id="login-screen">
-  <div class="login-card">
-    <div class="login-logo">X.Shoes</div>
-    <div class="login-sub">Admin Panel · لوحة التحكم</div>
-    <input class="inp" type="password" id="pass-inp" placeholder="كلمة المرور">
-    <div class="err" id="login-err"></div>
-    <button class="btn" onclick="doLogin()">دخول</button>
-  </div>
+  <form class="login-card" onsubmit="event.preventDefault(); doLogin();">
+    <div class="brand"><span class="brand-mark">X</span><span class="brand-name">Shoes</span></div>
+    <h1>لوحة التحكم</h1>
+    <label for="pass-inp">كلمة المرور</label>
+    <input class="inp" type="password" id="pass-inp" autocomplete="current-password" required>
+    <div class="err" id="login-err" role="alert"></div>
+    <button class="btn btn-solid btn-block" type="submit">دخول</button>
+  </form>
 </div>
 
-<!-- APP -->
 <div id="app">
-  <header>
-    <div class="header-logo">X.Shoes — Admin</div>
-    <div class="header-right">
-      <a href="index.html" target="_blank">← عرض الموقع</a>
-      <button class="logout-btn" onclick="logout()">خروج</button>
+  <aside class="rail">
+    <div class="brand"><span class="brand-mark">X</span><span class="brand-name">Shoes</span></div>
+    <nav class="tab-bar" aria-label="أقسام اللوحة">
+      <button class="tab active" onclick="showTab('products',this)">المنتجات</button>
+      <button class="tab" onclick="showTab('orders',this)">الطلبيات<span id="orders-tab-count" class="tab-count"></span></button>
+      <button class="tab" onclick="showTab('settings',this)">الإعدادات</button>
+    </nav>
+    <div class="rail-foot">
+      <a href="index.html" target="_blank" rel="noopener">فتح الموقع</a>
+      <button class="link-btn" onclick="logout()">خروج</button>
     </div>
-  </header>
+  </aside>
 
-  <div class="main">
-    <!-- SIDEBAR: ADD/EDIT FORM -->
-    <div class="sidebar" id="sidebar">
-      <div class="edit-banner" id="edit-banner">✏️ وضع التعديل — عدّل ثم اضغط حفظ</div>
-
-      <!-- PRODUCT FORM -->
-      <div class="form-sec">
-        <div class="sec-label">معلومات المنتج</div>
-        <input class="inp-sm" id="f-name" placeholder="اسم المنتج *">
-        <input class="inp-sm" id="f-brand" placeholder="الماركة (مثال: FENDI)">
-        <textarea class="inp-sm" id="f-desc" placeholder="وصف المنتج..."></textarea>
+  <main class="content">
+    <!-- المنتجات -->
+    <section class="page active" id="tab-products">
+      <div class="page-head">
+        <h2>المنتجات</h2>
+        <dl class="kpis">
+          <div><dt>كل المنتجات</dt><dd id="stat-total">0</dd></div>
+          <div><dt>بسعر ظاهر</dt><dd id="stat-visible">0</dd></div>
+          <div class="kpi-alert"><dt>نفدت كمياتها</dt><dd id="stat-new">0</dd></div>
+        </dl>
       </div>
-
-      <div class="form-sec">
-        <div class="sec-label">السعر والمقاسات</div>
-        <div class="toggle-row">
-          <div class="tog on" id="t-price" onclick="this.classList.toggle('on')"></div>
-          <label>إظهار السعر للزباين</label>
+      <div class="products-layout">
+        <div>
+          <div class="prod-list" id="prod-list"></div>
+          <div class="empty" id="prod-empty" style="display:none"><p>ما فيش منتجات بعد. أضف أول منتج من النموذج.</p></div>
         </div>
-        <input class="inp-sm" id="f-price" placeholder="السعر بالدينار الليبي">
-        <input class="inp-sm" id="f-sizes" placeholder="المقاسات: 40,41,42,43,44,45">
-        <div class="toggle-row">
-          <div class="tog on" id="t-stock" onclick="toggleStock(this)"></div>
-          <label>تتبّع المخزون لكل مقاس</label>
-        </div>
-        <div class="stock-grid" id="stock-inputs"></div>
-        <select class="inp-sm" id="f-badge">
-          <option value="">بدون شارة</option>
-          <option value="new">🟢 جديد</option>
-          <option value="sale">🔴 تخفيض</option>
-          <option value="exclusive">🔵 حصري</option>
-        </select>
-      </div>
 
-      <div class="form-sec">
-        <div class="sec-label">صور المنتج</div>
-        <div class="upload-box">
-          <input type="file" accept="image/*" multiple onchange="handleUpload(event)">
-          <p>📁 اضغط لرفع الصور<br><small style="opacity:.4">PNG · JPG · WEBP — الصورة الأولى هي الرئيسية</small></p>
-        </div>
-        <div class="img-grid" id="img-preview"></div>
-      </div>
+        <!-- نموذج الإضافة والتعديل -->
+        <aside class="form-panel" id="sidebar">
+          <div class="edit-banner" id="edit-banner">تعدّل منتجاً موجوداً — اضغط «حفظ التعديل» عند الانتهاء</div>
+          <h3 class="form-title">منتج جديد</h3>
 
-      <div class="form-sec">
-        <button class="p-btn" id="submit-btn" onclick="submitProduct()">➕ إضافة المنتج</button>
-        <button class="p-btn ghost" id="cancel-btn" onclick="cancelEdit()" style="display:none;margin-top:8px">✕ إلغاء التعديل</button>
-      </div>
-    </div>
+          <label class="fl" for="f-name">اسم المنتج</label>
+          <input class="inp" id="f-name" required>
+          <label class="fl" for="f-brand">الماركة</label>
+          <input class="inp" id="f-brand" placeholder="FENDI">
+          <label class="fl" for="f-desc">الوصف</label>
+          <textarea class="inp" id="f-desc" rows="3"></textarea>
 
-    <!-- CONTENT -->
-    <div class="content">
-      <div class="tab-bar">
-        <button class="tab active" onclick="showTab('products',this)">📦 المنتجات</button>
-        <button class="tab" onclick="showTab('orders',this)">🧾 الطلبيات<span id="orders-tab-count"></span></button>
-        <button class="tab" onclick="showTab('settings',this)">⚙️ الإعدادات</button>
-      </div>
-
-      <!-- PRODUCTS TAB -->
-      <div class="page active" id="tab-products">
-        <div class="stats-grid">
-          <div class="stat-card"><div class="stat-num" id="stat-total">0</div><div class="stat-label">إجمالي المنتجات</div></div>
-          <div class="stat-card"><div class="stat-num" id="stat-visible">0</div><div class="stat-label">بسعر ظاهر</div></div>
-          <div class="stat-card"><div class="stat-num" id="stat-new">0</div><div class="stat-label">نفدت كمياتها</div></div>
-        </div>
-        <div class="prod-list" id="prod-list"></div>
-        <div class="empty" id="prod-empty" style="display:none"><div>📦</div><p>لا توجد منتجات — أضف من اليسار</p></div>
-      </div>
-
-      <!-- ORDERS TAB -->
-      <div class="page" id="tab-orders">
-        <div class="order-filters" id="order-filters"></div>
-        <div id="orders-list"></div>
-      </div>
-
-      <!-- SETTINGS TAB -->
-      <div class="page" id="tab-settings">
-        <div class="settings-grid">
-          <div class="setting-card">
-            <h4>📞 معلومات التواصل</h4>
-            <input class="inp-sm" id="cfg-phone" placeholder="رقم الهاتف / واتساب">
-            <input class="inp-sm" id="cfg-address" placeholder="العنوان">
-            <input class="inp-sm" id="cfg-delivery" placeholder="معلومات التوصيل">
-            <button class="p-btn green" onclick="saveSettings()">💾 حفظ</button>
+          <div class="two">
+            <div><label class="fl" for="f-price">السعر (د.ل)</label><input class="inp" id="f-price" inputmode="decimal"></div>
+            <div><label class="fl" for="f-badge">الشارة</label>
+              <select class="inp" id="f-badge">
+                <option value="">بدون</option>
+                <option value="new">جديد</option>
+                <option value="sale">تخفيض</option>
+                <option value="exclusive">حصري</option>
+              </select></div>
           </div>
-          <div class="setting-card">
-            <h4>💰 الأسعار</h4>
-            <div class="toggle-row" style="margin-bottom:16px">
-              <div class="tog on" id="cfg-show-prices" onclick="this.classList.toggle('on')"></div>
-              <label>إظهار الأسعار لكل الزباين</label>
-            </div>
-            <p style="font-size:0.78rem;color:rgba(255,255,255,0.3);line-height:1.7">يمكنك إخفاء الأسعار من هنا — الزباين سيتواصلون معك للاستفسار.</p>
-            <button class="p-btn green" style="margin-top:14px" onclick="saveSettings()">💾 حفظ</button>
-          </div>
-          <div class="setting-card">
-            <h4>🔑 كلمة المرور</h4>
-            <input class="inp-sm" type="password" id="cfg-new-pass" placeholder="كلمة المرور الجديدة">
-            <button class="p-btn" onclick="changePass()">تغيير كلمة المرور</button>
-          </div>
-          <div class="setting-card">
-            <h4>🖼️ صور المنتجات</h4>
-            <p style="font-size:0.8rem;color:rgba(255,255,255,0.35);line-height:1.8;margin-bottom:12px">يحوّل صور المنتجات القديمة للطريقة الجديدة: صورة صغيرة للقائمة وصور كاملة تُحمَّل عند فتح المنتج — الموقع يفتح أسرع.</p>
-            <button class="p-btn" id="migrate-btn" onclick="migrateImages()">🖼️ تحويل الصور</button>
-          </div>
+          <div class="toggle-row"><div class="tog on" id="t-price" onclick="this.classList.toggle('on')" role="switch" tabindex="0"></div><span>إظهار السعر للزبائن</span></div>
+
+          <label class="fl" for="f-sizes">المقاسات</label>
+          <input class="inp" id="f-sizes" placeholder="40,41,42,43,44,45">
+          <div class="toggle-row"><div class="tog on" id="t-stock" onclick="toggleStock(this)" role="switch" tabindex="0"></div><span>تتبّع الكمية لكل مقاس</span></div>
+          <div class="stock-grid" id="stock-inputs"></div>
+
+          <label class="fl">الصور <small>الأولى هي الصورة الرئيسية</small></label>
+          <label class="upload-box">
+            <input type="file" accept="image/*" multiple onchange="handleUpload(event)">
+            <span>اختر صوراً من جهازك</span>
+          </label>
+          <div class="img-grid" id="img-preview"></div>
+
+          <button class="btn btn-solid btn-block" id="submit-btn" onclick="submitProduct()">إضافة المنتج</button>
+          <button class="btn btn-text btn-block" id="cancel-btn" onclick="cancelEdit()" style="display:none">إلغاء التعديل</button>
+        </aside>
+      </div>
+    </section>
+
+    <!-- الطلبيات -->
+    <section class="page" id="tab-orders">
+      <div class="page-head"><h2>الطلبيات</h2></div>
+      <div class="order-filters" id="order-filters"></div>
+      <div id="orders-list"></div>
+    </section>
+
+    <!-- الإعدادات -->
+    <section class="page" id="tab-settings">
+      <div class="page-head"><h2>الإعدادات</h2></div>
+      <div class="settings-grid">
+        <div class="setting-card">
+          <h4>التواصل</h4>
+          <label class="fl" for="cfg-phone">رقم الهاتف وواتساب</label><input class="inp" id="cfg-phone">
+          <label class="fl" for="cfg-address">العنوان</label><input class="inp" id="cfg-address">
+          <label class="fl" for="cfg-delivery">التوصيل</label><input class="inp" id="cfg-delivery">
+          <button class="btn btn-solid" onclick="saveSettings()">حفظ</button>
+        </div>
+        <div class="setting-card">
+          <h4>الأسعار</h4>
+          <div class="toggle-row"><div class="tog on" id="cfg-show-prices" onclick="this.classList.toggle('on')" role="switch" tabindex="0"></div><span>إظهار الأسعار في الموقع</span></div>
+          <p class="hint">لما تخفيها، الزبون يسأل عن السعر على واتساب.</p>
+          <button class="btn btn-solid" onclick="saveSettings()">حفظ</button>
+        </div>
+        <div class="setting-card">
+          <h4>كلمة المرور</h4>
+          <label class="fl" for="cfg-new-pass">كلمة مرور جديدة (6 أحرف على الأقل)</label>
+          <input class="inp" type="password" id="cfg-new-pass" autocomplete="new-password">
+          <button class="btn btn-solid" onclick="changePass()">تغيير كلمة المرور</button>
+        </div>
+        <div class="setting-card">
+          <h4>صور المنتجات</h4>
+          <p class="hint">يحوّل صور المنتجات القديمة: صورة صغيرة للقائمة، والصور الكاملة تنزل لما الزبون يفتح المنتج. الموقع يفتح أسرع.</p>
+          <button class="btn btn-line" id="migrate-btn" onclick="migrateImages()">تحويل الصور</button>
         </div>
       </div>
-    </div>
-  </div>
+    </section>
+  </main>
 </div>
 
-<!-- TOAST -->
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<!-- FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-
 <script src="firebase-config.js"></script>
 <script src="js/core.js"></script>
 <script src="js/admin.js"></script>

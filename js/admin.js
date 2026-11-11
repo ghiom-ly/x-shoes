@@ -18,7 +18,7 @@ async function doLogin() {
     if (!ok) { err.textContent = 'كلمة المرور غير صحيحة'; return; }
     sessionStorage.setItem('xshoes_authed', '1');
     showApp();
-    if (!doc.exists) showToast('⚠️ غيّر كلمة المرور الافتراضية من الإعدادات');
+    if (!doc.exists) showToast('غيّر كلمة المرور الافتراضية من الإعدادات');
   } catch (e) {
     console.error(e);
     err.textContent = 'تعذر الاتصال — حاول مرة أخرى';
@@ -36,12 +36,12 @@ function showApp() {
 
 async function changePass() {
   const np = document.getElementById('cfg-new-pass').value.trim();
-  if (np.length < 6) { showToast('⚠️ كلمة المرور 6 أحرف على الأقل'); return; }
+  if (np.length < 6) { showToast('كلمة المرور 6 أحرف على الأقل'); return; }
   try {
     await db.collection('settings').doc('admin').set({ ...(await XS.makePasswordRecord(np)), updatedAt: FV.serverTimestamp() });
     document.getElementById('cfg-new-pass').value = '';
-    showToast('✅ تم تغيير كلمة المرور على كل الأجهزة');
-  } catch (e) { console.error(e); showToast('❌ تعذر الحفظ'); }
+    showToast('تم تغيير كلمة المرور على كل الأجهزة');
+  } catch (e) { console.error(e); showToast('تعذر الحفظ'); }
 }
 
 // ── STATE ──
@@ -86,8 +86,8 @@ async function saveSettings() {
   };
   try {
     await db.collection('settings').doc('store').set(settings);
-    showToast('✅ تم حفظ الإعدادات');
-  } catch (e) { showToast('❌ خطأ في الحفظ'); console.error(e); }
+    showToast('تم حفظ الإعدادات');
+  } catch (e) { showToast('خطأ في الحفظ'); console.error(e); }
 }
 
 // ── PRODUCTS ──
@@ -115,7 +115,7 @@ function renderList() {
   const labels = { new: 'جديد', sale: 'تخفيض', exclusive: 'حصري' };
   el.innerHTML = products.map((p) => {
     const t = thumbOf(p);
-    const img = t ? `<img src="${esc(t)}" alt="">` : '<div class="ph">👟</div>';
+    const img = t ? `<img src="${esc(t)}" alt="">` : '<div class="ph">X</div>';
     const soldOut = XS.isSoldOut(p);
     const badge = soldOut ? 'none' : (p.badge || 'none');
     const badgeLabel = soldOut ? 'نفد' : (labels[p.badge] || '—');
@@ -128,8 +128,8 @@ function renderList() {
       <div class="pr-price">${p.showPrice && p.price ? esc(p.price) + ' د.ل' : '—'}</div>
       <div class="pr-badge ${esc(badge)}">${badgeLabel}</div>
       <div class="row-actions">
-        <button class="row-btn" data-act="edit" data-id="${esc(p.id)}">✏️ تعديل</button>
-        <button class="row-btn del" data-act="del" data-id="${esc(p.id)}">🗑️</button>
+        <button class="row-btn" data-act="edit" data-id="${esc(p.id)}">تعديل</button>
+        <button class="row-btn del" data-act="del" data-id="${esc(p.id)}">حذف</button>
       </div>
     </div>`;
   }).join('');
@@ -226,11 +226,11 @@ function removeImg(i) { uploadedImgs.splice(i, 1); renderImgPreview(); }
 // ── SAVE PRODUCT ──
 async function submitProduct() {
   const name = document.getElementById('f-name').value.trim();
-  if (!name) { showToast('⚠️ أدخل اسم المنتج'); return; }
+  if (!name) { showToast('أدخل اسم المنتج'); return; }
   const sizes = formSizes();
   const stock = readStock();
   const btn = document.getElementById('submit-btn');
-  btn.textContent = '⏳ جاري الحفظ...'; btn.disabled = true;
+  btn.textContent = 'جاري الحفظ…'; btn.disabled = true;
   try {
     const data = {
       name,
@@ -253,13 +253,13 @@ async function submitProduct() {
       ref = await db.collection('products').add(data);
     }
     await writeImages(ref, uploadedImgs, editingId ? editingImageCount : 0);
-    showToast(editingId ? '✅ تم تعديل المنتج' : '✅ تم إضافة المنتج');
+    showToast(editingId ? 'تم تعديل المنتج' : 'تم إضافة المنتج');
     if (editingId) cancelEdit(); else resetForm();
   } catch (e) {
     console.error(e);
-    showToast('❌ خطأ: ' + e.message);
+    showToast('خطأ: ' + e.message);
   }
-  btn.textContent = editingId ? '💾 حفظ التعديل' : '➕ إضافة المنتج';
+  btn.textContent = editingId ? 'حفظ التعديل' : 'إضافة المنتج';
   btn.disabled = false;
 }
 
@@ -277,13 +277,13 @@ async function editProduct(id) {
   document.getElementById('t-price').classList.toggle('on', !!p.showPrice);
   document.getElementById('t-stock').classList.toggle('on', !!p.stock);
   renderStockInputs(p.stock || null);
-  document.getElementById('submit-btn').textContent = '💾 حفظ التعديل';
+  document.getElementById('submit-btn').textContent = 'حفظ التعديل';
   document.getElementById('cancel-btn').style.display = 'block';
   document.getElementById('edit-banner').classList.add('show');
   window.scrollTo({ top: 0, behavior: 'smooth' });
   uploadedImgs = [];
   renderImgPreview();
-  try { uploadedImgs = await loadProductImages(p); } catch (e) { console.error(e); showToast('❌ تعذر تحميل الصور'); }
+  try { uploadedImgs = await loadProductImages(p); } catch (e) { console.error(e); showToast('تعذر تحميل الصور'); }
   if (editingId === id) renderImgPreview();
 }
 
@@ -291,7 +291,7 @@ function cancelEdit() {
   editingId = null;
   editingImageCount = 0;
   resetForm();
-  document.getElementById('submit-btn').textContent = '➕ إضافة المنتج';
+  document.getElementById('submit-btn').textContent = 'إضافة المنتج';
   document.getElementById('cancel-btn').style.display = 'none';
   document.getElementById('edit-banner').classList.remove('show');
 }
@@ -315,24 +315,24 @@ async function deleteProduct(id) {
     const imgs = await ref.collection('images').get();
     for (const d of imgs.docs) await d.ref.delete();
     await ref.delete();
-    showToast('🗑️ تم الحذف');
-  } catch (e) { console.error(e); showToast('❌ خطأ في الحذف'); }
+    showToast('تم الحذف');
+  } catch (e) { console.error(e); showToast('خطأ في الحذف'); }
 }
 
 /** تحويل صور المنتجات القديمة (داخل مستند المنتج) إلى الطريقة الجديدة */
 async function migrateImages() {
   const legacy = products.filter((p) => p.images && p.images.length && !p.imageCount);
-  if (!legacy.length) { showToast('✅ كل المنتجات بالطريقة الجديدة'); return; }
+  if (!legacy.length) { showToast('كل المنتجات بالطريقة الجديدة'); return; }
   if (!confirm(`تحويل صور ${legacy.length} منتج؟ قد يستغرق دقيقة.`)) return;
   const btn = document.getElementById('migrate-btn');
   btn.disabled = true;
   let done = 0;
   for (const p of legacy) {
-    btn.textContent = `⏳ ${done}/${legacy.length}`;
+    btn.textContent = `جاري التحويل ${done} من ${legacy.length}`;
     try { await writeImages(db.collection('products').doc(p.id), p.images, 0); done++; } catch (e) { console.error(p.id, e); }
   }
-  btn.disabled = false; btn.textContent = '🖼️ تحويل الصور';
-  showToast(done === legacy.length ? `✅ تم تحويل ${done} منتج` : `⚠️ تم ${done} من ${legacy.length} — أعد المحاولة للباقي`);
+  btn.disabled = false; btn.textContent = 'تحويل الصور';
+  showToast(done === legacy.length ? `تم تحويل ${done} منتج` : `تم ${done} من ${legacy.length} — أعد المحاولة للباقي`);
 }
 
 // ── ORDERS ──
@@ -351,7 +351,7 @@ function fmtDate(o) {
   return d ? d.toLocaleString('ar-LY', { dateStyle: 'short', timeStyle: 'short' }) : '';
 }
 
-const NEXT_LABELS = { confirmed: '✅ تأكيد (ينقص المخزون)', shipped: '🚚 تم الشحن', delivered: '📦 تم التسليم', cancelled: '✕ إلغاء' };
+const NEXT_LABELS = { confirmed: 'تأكيد (يخصم المخزون)', shipped: 'تم الشحن', delivered: 'تم التسليم', cancelled: 'إلغاء' };
 
 function renderOrders() {
   const counts = {};
@@ -363,13 +363,13 @@ function renderOrders() {
 
   const list = orders.filter((o) => o.status === orderFilter);
   const el = document.getElementById('orders-list');
-  if (!list.length) { el.innerHTML = '<div class="empty"><div>🧾</div><p>لا توجد طلبيات</p></div>'; return; }
+  if (!list.length) { el.innerHTML = '<div class="empty"><p>ما فيش طلبيات في هذه الحالة.</p></div>'; return; }
   el.innerHTML = list.map((o) => {
     const c = o.customer || {};
     const items = (o.items || []).map((it) => `<li>${esc(it.name)} — مقاس ${esc(it.size)} × ${esc(it.qty)}${it.price ? ` — ${esc(it.price * it.qty)} د.ل` : ''}</li>`).join('');
     const actions = (XS.TRANSITIONS[o.status] || []).map((s) =>
-      `<button class="row-btn${s === 'cancelled' ? ' del' : ''}" data-order="${esc(o.id)}" data-to="${s}">${s === 'cancelled' && o.stockApplied ? '✕ إلغاء (يرجع المخزون)' : NEXT_LABELS[s]}</button>`).join('');
-    const wa = c.phone ? `<a class="row-btn" target="_blank" rel="noopener" href="https://wa.me/${esc(c.phone)}?text=${encodeURIComponent('مرحباً ' + (c.name || '') + '، بخصوص طلبيتك رقم ' + o.code + ' من X Shoes')}">📱 واتساب الزبون</a>` : '';
+      `<button class="row-btn${s === 'cancelled' ? ' del' : ''}" data-order="${esc(o.id)}" data-to="${s}">${s === 'cancelled' && o.stockApplied ? 'إلغاء (يرجّع المخزون)' : NEXT_LABELS[s]}</button>`).join('');
+    const wa = c.phone ? `<a class="row-btn" target="_blank" rel="noopener" href="https://wa.me/${esc(c.phone)}?text=${encodeURIComponent('مرحباً ' + (c.name || '') + '، بخصوص طلبيتك رقم ' + o.code + ' من X Shoes')}">واتساب الزبون</a>` : '';
     return `<div class="order-card">
       <div class="order-head"><b>${esc(o.code)}</b><span class="pr-badge none">${esc(XS.STATUSES[o.status] || o.status)}</span><span class="pr-meta">${fmtDate(o)}</span>
         ${o.stockApplied ? '<span class="pr-meta" style="color:#7fc87f">المخزون مخصوم</span>' : ''}</div>
@@ -414,7 +414,7 @@ async function setOrderStatus(id, to) {
       }
       tx.update(ref, update);
     });
-    showToast('✅ ' + XS.STATUSES[to]);
+    showToast('صارت الطلبية: ' + XS.STATUSES[to]);
   } catch (e) {
     console.error(e);
     alert(e.message);

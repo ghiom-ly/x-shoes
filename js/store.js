@@ -63,7 +63,7 @@ function renderProducts() {
   grid.innerHTML = products.map((p) => {
     const soldOut = XS.isSoldOut(p);
     const t = thumbOf(p);
-    const img = t ? `<img src="${esc(t)}" alt="${esc(p.name)}" loading="lazy">` : '<div class="prod-placeholder">👟</div>';
+    const img = t ? `<img src="${esc(t)}" alt="${esc(p.name)}" loading="lazy">` : '<div class="prod-placeholder">X</div>';
     const badge = soldOut ? '<div class="prod-badge soldout">نفد</div>'
       : (p.badge ? `<div class="prod-badge ${esc(p.badge)}">${esc(BADGES[p.badge] || p.badge)}</div>` : '');
     const price = showPrice(p) ? `<div class="prod-price">${esc(p.price)}<small>د.ل</small></div>` : '<div></div>';
@@ -77,7 +77,7 @@ function renderProducts() {
         <div class="prod-name">${esc(p.name)}</div>
         <div class="prod-desc">${esc(p.desc || 'أحذية فاخرة بتصميم عصري')}</div>
         <div class="prod-sizes">${sizes}${more}</div>
-        <div class="prod-footer">${price}<button class="prod-add" title="اختر المقاس">+</button></div>
+        <div class="prod-footer">${price}<button class="prod-add" aria-label="اختر المقاس وأضف للسلة">+</button></div>
       </div>
     </div>`;
   }).join('');
@@ -196,14 +196,14 @@ function closeModal() {
 function addToCartFromModal() {
   if (!currentProduct) return;
   const r = XS.cartAdd(cart, currentProduct, currentSize, 1);
-  if (!r.ok) { showToast('⚠️ ' + r.reason); return; }
+  if (!r.ok) { showToast(r.reason); return; }
   const p = currentProduct;
   const size = currentSize;
   cart = r.cart;
   saveCart();
   updateCartCount();
   closeModal();
-  setTimeout(() => showToast(`✅ تمت الإضافة — ${p.name} — مقاس ${size}`), 150);
+  setTimeout(() => showToast(`أضفنا ${p.name} مقاس ${size} للسلة`), 150);
 }
 
 function changeQty(i, delta) {
@@ -215,7 +215,7 @@ function changeQty(i, delta) {
   } else {
     const p = products.find((x) => x.id === line.id) || { id: line.id };
     const r = XS.cartAdd(cart, p, line.size, 1);
-    if (!r.ok) { showToast('⚠️ ' + r.reason); return; }
+    if (!r.ok) { showToast(r.reason); return; }
     cart = r.cart;
   }
   saveCart(); updateCartCount(); renderCart();
@@ -244,7 +244,7 @@ function renderCart() {
   const footer = document.getElementById('cart-footer');
   const checkoutOpen = document.getElementById('checkout').classList.contains('show');
   if (!cart.length) {
-    if (!el.querySelector('.co-done')) el.innerHTML = '<div class="cart-empty"><div>🛒</div><p>السلة فارغة</p></div>';
+    if (!el.querySelector('.co-done')) el.innerHTML = '<div class="cart-empty"><p>السلة فارغة</p></div>';
     footer.style.display = 'none';
     closeCheckout();
     return;
@@ -252,7 +252,7 @@ function renderCart() {
   footer.style.display = checkoutOpen ? 'none' : 'block';
   el.innerHTML = cart.map((item, i) => `
     <div class="cart-item">
-      ${item.image ? `<img src="${esc(item.image)}" alt="">` : '<div class="cart-item-placeholder">👟</div>'}
+      ${item.image ? `<img src="${esc(item.image)}" alt="">` : '<div class="cart-item-placeholder">X</div>'}
       <div class="cart-item-info">
         <div class="cart-item-name">${esc(item.name)}</div>
         <div class="cart-item-size">المقاس: ${esc(item.size)} · ${esc(item.brand)}</div>
@@ -266,7 +266,7 @@ function renderCart() {
 }
 
 function removeFromCart(i) { cart.splice(i, 1); saveCart(); updateCartCount(); renderCart(); }
-function clearCart() { cart = []; saveCart(); updateCartCount(); renderCart(); showToast('🗑️ تم مسح السلة'); }
+function clearCart() { cart = []; saveCart(); updateCartCount(); renderCart(); showToast('فرّغنا السلة'); }
 
 // ── CHECKOUT ──
 function openCheckout() {
@@ -294,14 +294,14 @@ async function submitOrder() {
     const p = products.find((x) => x.id === line.id);
     if (p) {
       const have = XS.stockOf(p, line.size);
-      if (have !== null && have < line.qty) { showToast(`⚠️ ${line.name} مقاس ${line.size}: المتوفر ${have}`); return; }
+      if (have !== null && have < line.qty) { showToast(`${line.name} مقاس ${line.size}: المتوفر ${have} فقط — عدّل الكمية`); return; }
     }
   }
 
   const order = XS.buildOrder(cart, customer);
   const btn = document.getElementById('co-submit');
   submitting = true;
-  btn.disabled = true; btn.textContent = '⏳ جاري إرسال الطلب...';
+  btn.disabled = true; btn.textContent = 'جاري الإرسال…';
   const waWin = window.open('', '_blank');   // تُفتح الآن حتى لا يمنعها المتصفح بعد الانتظار
   let saved = true;
   try {
@@ -321,10 +321,10 @@ async function submitOrder() {
   document.getElementById('checkout').classList.remove('show');
   document.getElementById('cart-footer').style.display = 'none';
   document.getElementById('cart-items').innerHTML = `<div class="co-done"><div style="font-size:2.5rem">✅</div>
-    <p>تم استلام طلبك${saved ? '' : ' عبر واتساب'}</p><div class="code">${esc(order.code)}</div>
-    <p style="font-size:0.78rem;color:rgba(255,255,255,0.4)">احتفظ برقم الطلبية — سنتواصل معك لتأكيدها.</p></div>`;
+    <p>وصلنا طلبك${saved ? '' : ' على واتساب'}. رقمه:</p><div class="code">${esc(order.code)}</div>
+    <p style="font-size:0.78rem;color:rgba(255,255,255,0.4)">نتواصل معك على هذا الرقم لتأكيد الطلبية.</p></div>`;
   ['name', 'phone', 'address', 'note'].forEach((k) => { document.getElementById('co-' + k).value = ''; });
-  btn.disabled = false; btn.textContent = '📱 تأكيد الطلب وإرساله عبر واتساب';
+  btn.disabled = false; btn.textContent = 'أرسل الطلب على واتساب';
   submitting = false;
 }
 
