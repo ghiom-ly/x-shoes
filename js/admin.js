@@ -102,9 +102,13 @@ function loadProducts() {
 function thumbOf(p) { return p.thumb || (p.images && p.images[0]) || ''; }
 
 function stockSummary(p) {
-  if (!p.stock) return 'المخزون: غير مُتتبَّع';
-  const sizes = XS.parseSizes(p.sizes).length ? XS.parseSizes(p.sizes) : Object.keys(p.stock);
-  return 'المخزون: ' + sizes.map((s) => `${esc(s)}:<b style="color:${XS.stockOf(p, s) ? 'inherit' : '#e05555'}">${XS.stockOf(p, s)}</b>`).join(' · ');
+  if (!p.stock) return 'الكمية غير مُتتبَّعة';
+  const sizes = XS.sizeList(p);
+  const cell = (s, c) => { const n = XS.stockOf(p, s, c); return `${esc(s)}: <b style="color:${n ? 'inherit' : 'var(--oxblood)'}">${n}</b>`; };
+  if (XS.hasColors(p)) {
+    return XS.colorsOf(p).map((c) => `<span class="swatch" style="--c:${esc(c.hex || '#999')}"></span> ${esc(c.name)} — ${sizes.map((s) => cell(s, c.name)).join('، ')}`).join('<br>');
+  }
+  return sizes.map((s) => cell(s)).join('، ');
 }
 
 function renderList() {
@@ -123,7 +127,7 @@ function renderList() {
     return `<div class="prod-row">
       ${img}
       <div><div class="pr-name">${esc(p.name)}</div>
-        <div class="pr-meta">${esc(p.brand || 'X Shoes')} · مقاسات: ${esc(XS.parseSizes(p.sizes).join(', '))}${legacy}</div>
+        <div class="pr-meta">${esc(p.brand || 'X Shoes')} — مقاسات ${esc(XS.parseSizes(p.sizes).join('، '))}${legacy}</div>
         <div class="pr-meta">${stockSummary(p)}</div></div>
       <div class="pr-price">${p.showPrice && p.price ? esc(p.price) + ' د.ل' : '—'}</div>
       <div class="pr-badge ${esc(badge)}">${badgeLabel}</div>
@@ -148,22 +152,52 @@ function updateStats() {
 function formSizes() {
   return XS.parseSizes(document.getElementById('f-sizes').value);
 }
+// ── الألوان ──
+let colorsState = [];
+function cleanColors() {
+  const seen = new Set();
+  return colorsState.map((c) => ({ name: String(c.name || '').trim(), hex: c.hex || '#999999' }))
+    .filter((c) => c.name && !seen.has(c.name) && seen.add(c.name));
+}
+function renderColorRows() {
+  const box = document.getElementById('color-rows');
+  box.innerHTML = colorsState.map((c, i) => `
+    <div class="color-row">
+      <input type="color" value="${esc(c.hex || '#999999')}" data-i="${i}" data-f="hex" aria-label="درجة اللون">
+      <input class="inp" value="${esc(c.name || '')}" data-i="${i}" data-f="name" placeholder="اسم اللون (أسود، بني…)" maxlength="30">
+      <button type="button" class="row-btn del" data-rm="${i}" aria-label="حذف اللون">✕</button>
+    </div>`).join('');
+  box.querySelectorAll('input').forEach((inp) => inp.addEventListener('input', () => {
+    colorsState[+inp.dataset.i][inp.dataset.f] = inp.value;
+    if (inp.dataset.f === 'name') renderStockInputs();
+  }));
+  box.querySelectorAll('[data-rm]').forEach((b) => b.addEventListener('click', () => {
+    colorsState.splice(+b.dataset.rm, 1); renderColorRows(); renderStockInputs();
+  }));
+}
+function addColorRow() { colorsState.push({ name: '', hex: '#1d1e20' }); renderColorRows(); }
+
 function renderStockInputs(stock) {
   const box = document.getElementById('stock-inputs');
   const on = document.getElementById('t-stock').classList.contains('on');
-  box.style.display = on ? 'grid' : 'none';
+  box.style.display = on ? 'block' : 'none';
   const prev = {};
-  box.querySelectorAll('input').forEach((i) => { prev[i.dataset.size] = i.value; });
-  box.innerHTML = formSizes().map((s) => {
-    const v = stock ? (stock[s] ?? 0) : (prev[s] ?? 0);
-    return `<label class="stock-cell"><span>${esc(s)}</span><input type="number" min="0" max="9999" class="inp-sm" data-size="${esc(s)}" value="${esc(v)}"></label>`;
-  }).join('') || '<p style="font-size:0.75rem;color:rgba(255,255,255,0.3)">أدخل المقاسات أولاً</p>';
+  box.querySelectorAll('input').forEach((i) => { prev[i.dataset.key] = i.value; });
+  const sizes = formSizes();
+  const colors = cleanColors();
+  if (!sizes.length) { box.innerHTML = '<p class="hint">أدخل المقاسات أولاً</p>'; return; }
+  const val = (k) => (stock ? (stock[k] ?? 0) : (prev[k] ?? 0));
+  const cell = (k) => `<input type="number" min="0" max="9999" class="inp" data-key="${esc(k)}" value="${esc(val(k))}" aria-label="${esc(k.replace('|', ' مقاس '))}">`;
+  const rows = colors.length ? colors.map((c) => ({ label: `<span class="swatch" style="--c:${esc(c.hex)}"></span>${esc(c.name)}`, color: c.name })) : [{ label: 'الكمية', color: '' }];
+  box.innerHTML = `<table class="stock-table"><thead><tr><th></th>${sizes.map((s) => `<th>${esc(s)}</th>`).join('')}</tr></thead><tbody>
+    ${rows.map((r) => `<tr><th>${r.label}</th>${sizes.map((s) => `<td>${cell(XS.stockKey(s, r.color))}</td>`).join('')}</tr>`).join('')}
+  </tbody></table>`;
 }
 function toggleStock(el) { el.classList.toggle('on'); renderStockInputs(); }
 function readStock() {
   if (!document.getElementById('t-stock').classList.contains('on')) return null;
   const out = {};
-  document.querySelectorAll('#stock-inputs input').forEach((i) => { out[i.dataset.size] = Math.max(0, parseInt(i.value, 10) || 0); });
+  document.querySelectorAll('#stock-inputs input').forEach((i) => { out[i.dataset.key] = Math.max(0, parseInt(i.value, 10) || 0); });
   return out;
 }
 
@@ -239,6 +273,7 @@ async function submitProduct() {
       price: document.getElementById('f-price').value.trim(),
       showPrice: document.getElementById('t-price').classList.contains('on'),
       sizes,
+      colors: cleanColors().length ? cleanColors() : FV.delete(),
       badge: document.getElementById('f-badge').value,
       stock: stock || FV.delete(),
       updatedAt: FV.serverTimestamp(),
@@ -250,6 +285,7 @@ async function submitProduct() {
     } else {
       data.createdAt = FV.serverTimestamp();
       if (!stock) delete data.stock;
+      if (!cleanColors().length) delete data.colors;
       ref = await db.collection('products').add(data);
     }
     await writeImages(ref, uploadedImgs, editingId ? editingImageCount : 0);
@@ -276,6 +312,8 @@ async function editProduct(id) {
   document.getElementById('f-badge').value = p.badge || '';
   document.getElementById('t-price').classList.toggle('on', !!p.showPrice);
   document.getElementById('t-stock').classList.toggle('on', !!p.stock);
+  colorsState = (p.colors || []).map((c) => ({ ...c }));
+  renderColorRows();
   renderStockInputs(p.stock || null);
   document.getElementById('submit-btn').textContent = 'حفظ التعديل';
   document.getElementById('cancel-btn').style.display = 'block';
@@ -302,6 +340,8 @@ function resetForm() {
   document.getElementById('t-price').classList.add('on');
   document.getElementById('t-stock').classList.add('on');
   document.getElementById('stock-inputs').innerHTML = '';
+  colorsState = [];
+  renderColorRows();
   renderStockInputs({});
   uploadedImgs = [];
   renderImgPreview();
@@ -366,7 +406,7 @@ function renderOrders() {
   if (!list.length) { el.innerHTML = '<div class="empty"><p>ما فيش طلبيات في هذه الحالة.</p></div>'; return; }
   el.innerHTML = list.map((o) => {
     const c = o.customer || {};
-    const items = (o.items || []).map((it) => `<li>${esc(it.name)} — مقاس ${esc(it.size)} × ${esc(it.qty)}${it.price ? ` — ${esc(it.price * it.qty)} د.ل` : ''}</li>`).join('');
+    const items = (o.items || []).map((it) => `<li>${esc(it.name)}${it.color ? ' — ' + esc(it.color) : ''} — مقاس ${esc(it.size)} × ${esc(it.qty)}${it.price ? ` — ${esc(it.price * it.qty)} د.ل` : ''}</li>`).join('');
     const actions = (XS.TRANSITIONS[o.status] || []).map((s) =>
       `<button class="row-btn${s === 'cancelled' ? ' del' : ''}" data-order="${esc(o.id)}" data-to="${s}">${s === 'cancelled' && o.stockApplied ? 'إلغاء (يرجّع المخزون)' : NEXT_LABELS[s]}</button>`).join('');
     const wa = c.phone ? `<a class="row-btn" target="_blank" rel="noopener" href="https://wa.me/${esc(c.phone)}?text=${encodeURIComponent('مرحباً ' + (c.name || '') + '، بخصوص طلبيتك رقم ' + o.code + ' من X Shoes')}">واتساب الزبون</a>` : '';

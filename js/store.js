@@ -8,6 +8,8 @@ let products = [];
 let cart = loadCart();
 let currentProduct = null;
 let currentSize = null;
+let currentColor = null;
+const DEFAULT_SIZES = ['41', '42', '43', '44', '45'];
 let storeSettings = { phone: '0920007485', showPrices: true };
 
 function loadCart() {
@@ -42,7 +44,7 @@ function loadProducts() {
     hideLoading();
     if (currentProduct) {   // تحديث المخزون في النافذة المفتوحة
       const fresh = products.find((p) => p.id === currentProduct.id);
-      if (fresh) { currentProduct = fresh; renderModalSizes(); }
+      if (fresh) { currentProduct = fresh; renderModalColors(); renderModalSizes(); }
     }
   }, (err) => { console.error(err); hideLoading(); });
 }
@@ -75,6 +77,7 @@ function renderProducts() {
       <div class="prod-body">
         <div class="prod-brand">${esc(p.brand || 'X Shoes')}</div>
         <div class="prod-name">${esc(p.name)}</div>
+        ${XS.hasColors(p) ? `<div class="prod-colors">${XS.colorsOf(p).map((c) => `<span class="swatch" style="--c:${esc(c.hex || '#999')}" title="${esc(c.name)}"></span>`).join('')}</div>` : ''}
         <div class="prod-desc">${esc(p.desc || 'أحذية فاخرة بتصميم عصري')}</div>
         <div class="prod-sizes">${sizes}${more}</div>
         <div class="prod-footer">${price}<button class="prod-add" aria-label="اختر المقاس وأضف للسلة">+</button></div>
@@ -120,11 +123,15 @@ async function openModal(id) {
   currentProduct = products.find((p) => p.id === id);
   if (!currentProduct) return;
   currentSize = null;
+  currentColor = null;
   const p = currentProduct;
   document.getElementById('modal-brand').textContent = p.brand || 'X Shoes';
   document.getElementById('modal-name').textContent = p.name;
   document.getElementById('modal-desc').textContent = p.desc || 'أحذية فاخرة بتصميم عصري ومريح';
   document.getElementById('modal-price').textContent = showPrice(p) ? p.price + ' د.ل' : '';
+  const firstColor = XS.colorsOf(p).find((c) => XS.colorAvailable(p, c.name));
+  currentColor = firstColor ? firstColor.name : null;
+  renderModalColors();
   renderModalSizes();
 
   const side = document.getElementById('modal-img-side');
@@ -158,18 +165,42 @@ async function openModal(id) {
 function renderModalSizes() {
   const p = currentProduct;
   const parsed = XS.parseSizes(p.sizes);
-  const sizes = parsed.length ? parsed : ['40', '41', '42', '43', '44', '45'];
+  const sizes = parsed.length ? parsed : DEFAULT_SIZES;
   const box = document.getElementById('modal-sizes');
   box.innerHTML = '';
   sizes.forEach((s) => {
     const b = document.createElement('button');
     b.className = 'size-btn' + (String(s) === currentSize ? ' active' : '');
     b.textContent = s;
-    if (!XS.sizeAvailable(p, s)) { b.disabled = true; b.title = 'غير متوفر'; }
+    if (!XS.sizeAvailable(p, s, currentColor)) { b.disabled = true; b.title = 'غير متوفر'; }
     b.addEventListener('click', () => selectSize(String(s)));
     box.appendChild(b);
   });
   updateStockNote();
+}
+
+function renderModalColors() {
+  const p = currentProduct;
+  const wrap = document.getElementById('modal-colors-wrap');
+  const box = document.getElementById('modal-colors');
+  const colors = XS.colorsOf(p);
+  wrap.style.display = colors.length ? 'block' : 'none';
+  box.innerHTML = '';
+  colors.forEach((c) => {
+    const b = document.createElement('button');
+    b.className = 'color-btn' + (c.name === currentColor ? ' active' : '');
+    b.style.setProperty('--c', c.hex || '#999');
+    b.innerHTML = `<span class="swatch"></span>${esc(c.name)}`;
+    if (!XS.colorAvailable(p, c.name)) { b.disabled = true; b.title = 'غير متوفر'; }
+    b.addEventListener('click', () => {
+      currentColor = c.name;
+      if (currentSize && !XS.sizeAvailable(p, currentSize, currentColor)) currentSize = null;
+      renderModalColors();
+      renderModalSizes();
+    });
+    box.appendChild(b);
+  });
+  document.getElementById('modal-color-name').textContent = currentColor || '';
 }
 
 function selectSize(size) {
@@ -182,7 +213,7 @@ function updateStockNote() {
   const p = currentProduct;
   const note = document.getElementById('modal-stock-note');
   if (XS.isSoldOut(p)) { note.textContent = 'نفد هذا المنتج حالياً'; return; }
-  const left = currentSize ? XS.stockOf(p, currentSize) : null;
+  const left = currentSize ? XS.stockOf(p, currentSize, currentColor) : null;
   note.textContent = left !== null && left > 0 && left <= 3 ? `باقي ${left} فقط من هذا المقاس` : '';
 }
 
@@ -195,10 +226,10 @@ function closeModal() {
 // ── CART ──
 function addToCartFromModal() {
   if (!currentProduct) return;
-  const r = XS.cartAdd(cart, currentProduct, currentSize, 1);
+  const r = XS.cartAdd(cart, currentProduct, currentSize, 1, currentColor);
   if (!r.ok) { showToast(r.reason); return; }
   const p = currentProduct;
-  const size = currentSize;
+  const size = currentSize + (currentColor ? ' ' + currentColor : '');
   cart = r.cart;
   saveCart();
   updateCartCount();
@@ -214,7 +245,7 @@ function changeQty(i, delta) {
     if (line.qty < 1) cart.splice(i, 1);
   } else {
     const p = products.find((x) => x.id === line.id) || { id: line.id };
-    const r = XS.cartAdd(cart, p, line.size, 1);
+    const r = XS.cartAdd(cart, p, line.size, 1, line.color);
     if (!r.ok) { showToast(r.reason); return; }
     cart = r.cart;
   }
@@ -255,7 +286,7 @@ function renderCart() {
       ${item.image ? `<img src="${esc(item.image)}" alt="">` : '<div class="cart-item-placeholder">X</div>'}
       <div class="cart-item-info">
         <div class="cart-item-name">${esc(item.name)}</div>
-        <div class="cart-item-size">المقاس: ${esc(item.size)} · ${esc(item.brand)}</div>
+        <div class="cart-item-size">${item.color ? 'اللون ' + esc(item.color) + '، ' : ''}المقاس ${esc(item.size)}</div>
         <div class="cart-item-price">${XS.linePrice(item) ? XS.linePrice(item) * item.qty + ' د.ل' : ''}</div>
         <div class="qty-ctl"><button onclick="changeQty(${i},-1)">−</button><span>${item.qty}</span><button onclick="changeQty(${i},1)">+</button></div>
       </div>
@@ -293,7 +324,7 @@ async function submitOrder() {
   for (const line of cart) {
     const p = products.find((x) => x.id === line.id);
     if (p) {
-      const have = XS.stockOf(p, line.size);
+      const have = XS.stockOf(p, line.size, line.color);
       if (have !== null && have < line.qty) { showToast(`${line.name} مقاس ${line.size}: المتوفر ${have} فقط — عدّل الكمية`); return; }
     }
   }
@@ -331,7 +362,7 @@ async function submitOrder() {
 function orderNowWA() {
   if (!currentProduct) return;
   const p = currentProduct;
-  const msg = `مرحباً، أريد الاستفسار عن:\n${p.name} (${p.brand || ''})\nالمقاس: ${currentSize || 'غير محدد'}`;
+  const msg = `مرحباً، أريد الاستفسار عن:\n${p.name} (${p.brand || ''})${currentColor ? '\nاللون: ' + currentColor : ''}\nالمقاس: ${currentSize || 'غير محدد'}`;
   window.open(`https://wa.me/${storePhone()}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 

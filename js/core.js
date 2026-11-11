@@ -49,52 +49,76 @@
     return out;
   }
 
-  // ── المخزون: product.stock = { 'مقاس': عدد } — غيابه يعني منتجاً بلا تتبّع (غير محدود)
+  // ── الألوان: product.colors = [{ name, hex }] — اختيارية
+  function colorsOf(p) {
+    return (p && Array.isArray(p.colors) ? p.colors : []).filter((c) => c && String(c.name || '').trim());
+  }
+  function hasColors(p) { return colorsOf(p).length > 0; }
+
+  // ── المخزون: product.stock = { 'مقاس': عدد } أو { 'لون|مقاس': عدد } للمنتج الملوّن — غيابه = بلا تتبّع (غير محدود)
+  function stockKey(size, color) {
+    return color ? `${color}|${size}` : String(size);
+  }
   function tracked(p) {
     return !!(p && p.stock && typeof p.stock === 'object');
   }
-  function stockOf(p, size) {
+  function stockOf(p, size, color) {
     if (!tracked(p)) return null;
-    return Math.max(0, parseInt(p.stock[size], 10) || 0);
+    return Math.max(0, parseInt(p.stock[stockKey(size, hasColors(p) ? color : '')], 10) || 0);
   }
-  function sizeAvailable(p, size) {
-    const s = stockOf(p, size);
+  function sizeList(p) {
+    const s = parseSizes(p.sizes);
+    return s.length ? s : (tracked(p) && !hasColors(p) ? Object.keys(p.stock) : []);
+  }
+  function sizeAvailable(p, size, color) {
+    if (hasColors(p) && !color) return colorsOf(p).some((c) => sizeAvailable(p, size, c.name));
+    const s = stockOf(p, size, color);
     return s === null || s > 0;
+  }
+  function colorAvailable(p, color) {
+    if (!tracked(p)) return true;
+    return sizeList(p).some((s) => stockOf(p, s, color) > 0);
   }
   function isSoldOut(p) {
     if (!tracked(p)) return false;
-    const sizes = parseSizes(p.sizes).length ? parseSizes(p.sizes) : Object.keys(p.stock);
-    return sizes.every((s) => stockOf(p, s) === 0);
+    if (hasColors(p)) return colorsOf(p).every((c) => !colorAvailable(p, c.name));
+    return sizeList(p).every((s) => stockOf(p, s) === 0);
   }
 
-  // ── السلة: أسطر { id, name, brand, price, showPrice, size, image, qty }
+  // ── السلة: أسطر { id, name, brand, price, showPrice, size, color, image, qty }
+  function sameLine(a, b) {
+    return a.id === b.id && String(a.size) === String(b.size) && String(a.color || '') === String(b.color || '');
+  }
   function normalizeCart(raw) {
     if (!Array.isArray(raw)) return [];
     const out = [];
     raw.forEach((it) => {
       if (!it || !it.id || !it.size) return;
       const qty = Math.max(1, parseInt(it.qty, 10) || 1);
-      const same = out.find((x) => x.id === it.id && String(x.size) === String(it.size));
+      const same = out.find((x) => sameLine(x, it));
       if (same) same.qty += qty;
-      else out.push({ ...it, size: String(it.size), qty });
+      else out.push({ ...it, size: String(it.size), color: it.color ? String(it.color) : '', qty });
     });
     return out;
   }
 
-  function cartAdd(cart, p, size, qty) {
+  function cartAdd(cart, p, size, qty, color) {
     const items = normalizeCart(cart).map((x) => ({ ...x }));
     qty = Math.max(1, parseInt(qty, 10) || 1);
+    color = color ? String(color) : '';
+    if (hasColors(p) && !colorsOf(p).some((c) => c.name === color)) return { ok: false, cart: items, reason: 'اختر اللون أولاً' };
     if (!size) return { ok: false, cart: items, reason: 'اختر المقاس أولاً' };
     size = String(size);
-    const line = items.find((x) => x.id === p.id && x.size === size);
+    const probe = { id: p.id, size, color };
+    const line = items.find((x) => sameLine(x, probe));
     const want = (line ? line.qty : 0) + qty;
-    const have = stockOf(p, size);
+    const have = stockOf(p, size, color);
     if (have !== null && want > have) {
       return { ok: false, cart: items, reason: have === 0 ? 'هذا المقاس غير متوفر' : `المتوفر من هذا المقاس ${have} فقط` };
     }
     if (want > MAX_QTY_PER_LINE) return { ok: false, cart: items, reason: `الحد الأقصى ${MAX_QTY_PER_LINE} قطع لكل مقاس` };
     if (line) line.qty = want;
-    else items.push({ id: p.id, name: p.name, brand: p.brand || '', price: p.price || '', showPrice: !!p.showPrice, size, image: p.thumb || (p.images && p.images[0]) || '', qty });
+    else items.push({ id: p.id, name: p.name, brand: p.brand || '', price: p.price || '', showPrice: !!p.showPrice, size, color, image: p.thumb || (p.images && p.images[0]) || '', qty });
     return { ok: true, cart: items };
   }
 
@@ -153,7 +177,7 @@
       status: 'new',
       stockApplied: false,
       customer: { name: t(customer.name), phone: normalizePhone(customer.phone), city: t(customer.city), address: t(customer.address), note: t(customer.note) },
-      items: items.map((x) => ({ productId: x.id, name: String(x.name || ''), brand: String(x.brand || ''), size: x.size, qty: x.qty, price: linePrice(x) })),
+      items: items.map((x) => ({ productId: x.id, name: String(x.name || ''), brand: String(x.brand || ''), size: x.size, color: x.color || '', qty: x.qty, price: linePrice(x) })),
       total: cartTotal(items),
     };
   }
@@ -161,7 +185,7 @@
   function orderMessage(o) {
     const lines = [`مرحباً، طلبية جديدة رقم ${o.code}`, ''];
     o.items.forEach((it, i) => {
-      lines.push(`${i + 1}. ${it.name}${it.brand ? ' (' + it.brand + ')' : ''} — مقاس ${it.size} × ${it.qty}${it.price ? ' — ' + it.price * it.qty + ' د.ل' : ''}`);
+      lines.push(`${i + 1}. ${it.name}${it.brand ? ' (' + it.brand + ')' : ''} ${it.color ? ' — اللون ' + it.color : ''} — مقاس ${it.size} × ${it.qty}${it.price ? ' — ' + it.price * it.qty + ' د.ل' : ''}`);
     });
     if (o.total) lines.push('', `المجموع: ${o.total} د.ل`);
     lines.push('', `الاسم: ${o.customer.name}`, `الهاتف: 0${String(o.customer.phone).slice(3)}`, `المدينة: ${o.customer.city}`, `العنوان: ${o.customer.address}`);
@@ -175,17 +199,18 @@
     Object.keys(stocks).forEach((k) => { out[k] = stocks[k] ? { ...stocks[k] } : stocks[k]; });
     const need = {};
     items.forEach((it) => {
-      const key = it.productId + '|' + it.size;
-      need[key] = need[key] || { productId: it.productId, name: it.name, size: String(it.size), qty: 0 };
+      const sk = stockKey(String(it.size), it.color || '');
+      const key = it.productId + '#' + sk;
+      need[key] = need[key] || { productId: it.productId, name: it.name, size: String(it.size), stockKey: sk, qty: 0 };
       need[key].qty += Math.max(1, parseInt(it.qty, 10) || 1);
     });
     const shortages = [];
     Object.values(need).forEach((n) => {
       const st = out[n.productId];
       if (!st) return;   // منتج بلا تتبّع أو محذوف
-      const have = Math.max(0, parseInt(st[n.size], 10) || 0);
-      if (direction < 0 && have < n.qty) shortages.push({ name: n.name, size: n.size, need: n.qty, have });
-      st[n.size] = have + direction * n.qty;
+      const have = Math.max(0, parseInt(st[n.stockKey], 10) || 0);
+      if (direction < 0 && have < n.qty) shortages.push({ name: n.name, size: n.stockKey.replace('|', ' مقاس '), need: n.qty, have });
+      st[n.stockKey] = have + direction * n.qty;
     });
     return shortages.length ? { ok: false, shortages, stocks } : { ok: true, stocks: out };
   }
@@ -222,7 +247,7 @@
 
   return {
     STATUSES, TRANSITIONS, MAX_QTY_PER_LINE, DEFAULT_PASSWORD,
-    esc, num, parseSizes, stockOf, sizeAvailable, isSoldOut,
+    esc, num, parseSizes, colorsOf, hasColors, stockKey, stockOf, sizeList, sizeAvailable, colorAvailable, isSoldOut,
     normalizeCart, cartAdd, cartCount, cartTotal, linePrice,
     normalizePhone, validateCustomer, orderCode, buildOrder, orderMessage,
     applyStock, canTransition, makePasswordRecord, verifyPassword,

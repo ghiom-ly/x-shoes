@@ -63,7 +63,7 @@
           <label class="fl" for="f-name">اسم المنتج</label>
           <input class="inp" id="f-name" required>
           <label class="fl" for="f-brand">الماركة</label>
-          <input class="inp" id="f-brand" placeholder="FENDI">
+          <input class="inp" id="f-brand" placeholder="اسم الماركة">
           <label class="fl" for="f-desc">الوصف</label>
           <textarea class="inp" id="f-desc" rows="3"></textarea>
 
@@ -80,9 +80,12 @@
           <div class="toggle-row"><div class="tog on" id="t-price" onclick="this.classList.toggle('on')" role="switch" tabindex="0"></div><span>إظهار السعر للزبائن</span></div>
 
           <label class="fl" for="f-sizes">المقاسات</label>
-          <input class="inp" id="f-sizes" placeholder="40,41,42,43,44,45">
-          <div class="toggle-row"><div class="tog on" id="t-stock" onclick="toggleStock(this)" role="switch" tabindex="0"></div><span>تتبّع الكمية لكل مقاس</span></div>
-          <div class="stock-grid" id="stock-inputs"></div>
+          <input class="inp" id="f-sizes" placeholder="41,42,43,44,45">
+          <label class="fl">الألوان <small>اتركها فارغة لو المنتج بلون واحد</small></label>
+          <div id="color-rows"></div>
+          <button type="button" class="btn btn-line btn-sm" onclick="addColorRow()">إضافة لون</button>
+          <div class="toggle-row"><div class="tog on" id="t-stock" onclick="toggleStock(this)" role="switch" tabindex="0"></div><span>تتبّع الكمية لكل لون ومقاس</span></div>
+          <div id="stock-inputs"></div>
 
           <label class="fl">الصور <small>الأولى هي الصورة الرئيسية</small></label>
           <label class="upload-box">

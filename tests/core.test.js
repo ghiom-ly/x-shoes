@@ -84,7 +84,7 @@ test('بناء الطلبية: رقم مميز، أسطر، مجموع، حال�
   assert.equal(o.total, 500);
   assert.equal(o.customer.name, 'علي');
   assert.equal(o.customer.phone, '218912345678');
-  assert.deepEqual(o.items, [{ productId: 'p1', name: 'FENDI Runner', brand: 'FENDI', size: '41', qty: 2, price: 250 }]);
+  assert.deepEqual(o.items, [{ productId: 'p1', name: 'FENDI Runner', brand: 'FENDI', size: '41', color: '', qty: 2, price: 250 }]);
   assert.throws(() => XS.buildOrder([], { name: 'a', phone: '0912345678', city: 'a', address: 'a' }), /السلة فارغة/);
 });
 
@@ -148,4 +148,48 @@ test('المقاسات: تُفصل بالنقطة والفاصلة والمسا�
 test('المنتج القديم بمقاسات ملتصقة يُقرأ صحيحاً في المخزون', () => {
   const p = { id: 'p', sizes: ['40.41.42'], stock: { 40: 0, 41: 0, 42: 0 } };
   assert.equal(XS.isSoldOut(p), true);
+});
+
+// ── الألوان: المخزون لكل لون × مقاس بمفتاح "اللون|المقاس"
+const colored = (stock) => ({ id: 'c1', name: 'Loafer', brand: 'X', price: '300', showPrice: true, sizes: ['41', '42'],
+  colors: [{ name: 'أسود', hex: '#111111' }, { name: 'بني', hex: '#6b4a2b' }], stock });
+
+test('الألوان: المخزون لكل لون ومقاس', () => {
+  const p = colored({ 'أسود|41': 2, 'أسود|42': 0, 'بني|41': 0, 'بني|42': 1 });
+  assert.equal(XS.hasColors(p), true);
+  assert.equal(XS.stockOf(p, '41', 'أسود'), 2);
+  assert.equal(XS.sizeAvailable(p, '42', 'أسود'), false);
+  assert.equal(XS.sizeAvailable(p, '42', 'بني'), true);
+  assert.equal(XS.colorAvailable(p, 'أسود'), true);
+  assert.equal(XS.isSoldOut(p), false);
+  assert.equal(XS.isSoldOut(colored({ 'أسود|41': 0, 'أسود|42': 0, 'بني|41': 0, 'بني|42': 0 })), true);
+  assert.equal(XS.colorAvailable(colored({ 'أسود|41': 0, 'أسود|42': 0, 'بني|42': 3 }), 'أسود'), false);
+});
+
+test('الألوان: السلة تفصل الأسطر باللون وتطلب اختيار اللون', () => {
+  const p = colored({ 'أسود|41': 2, 'بني|41': 5 });
+  assert.equal(XS.cartAdd([], p, '41', 1).ok, false);
+  assert.match(XS.cartAdd([], p, '41', 1).reason, /اللون/);
+  let r = XS.cartAdd([], p, '41', 2, 'أسود');
+  r = XS.cartAdd(r.cart, p, '41', 1, 'بني');
+  assert.equal(r.cart.length, 2);
+  assert.equal(r.cart[0].color, 'أسود');
+  assert.equal(XS.cartAdd(r.cart, p, '41', 1, 'أسود').ok, false);   // الأسود 41 متوفر 2 فقط
+  assert.equal(XS.cartAdd([], p, '41', 1, 'أحمر').ok, false);       // لون غير موجود
+});
+
+test('الألوان: الطلبية والرسالة والمخزون', () => {
+  const cart = [{ id: 'c1', name: 'Loafer', brand: 'X', size: '41', color: 'بني', qty: 1, price: '300', showPrice: true }];
+  const o = XS.buildOrder(cart, { name: 'علي', phone: '0912345678', city: 'طرابلس', address: 'جنزور' });
+  assert.equal(o.items[0].color, 'بني');
+  assert.match(XS.orderMessage(o), /اللون بني/);
+  const r = XS.applyStock({ c1: { 'بني|41': 1, 'أسود|41': 4 } }, o.items, -1);
+  assert.deepEqual(r.stocks.c1, { 'بني|41': 0, 'أسود|41': 4 });
+  assert.equal(XS.applyStock({ c1: { 'بني|41': 0 } }, o.items, -1).ok, false);
+});
+
+test('الألوان: مفتاح المخزون', () => {
+  assert.equal(XS.stockKey('41', 'أسود'), 'أسود|41');
+  assert.equal(XS.stockKey('41', ''), '41');
+  assert.equal(XS.stockKey('41'), '41');
 });

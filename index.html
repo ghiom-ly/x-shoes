@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>X Shoes | أحذية رجالية فاخرة — جنزور</title>
-<meta name="description" content="أحذية رجالية فاخرة من FENDI وBrunello Cucinelli وماركات عالمية، مقاسات 40 إلى 45، توصيل داخل طرابلس وخارجها.">
+<title>X Shoes | أحذية رجالية — جنزور، طرابلس</title>
+<meta name="description" content="أحذية رجالية تواكب كل الصيحات، بألوان متعددة ومقاسات 41 إلى 45، توصيل داخل طرابلس وخارجها.">
 <meta name="theme-color" content="#E4E2DE">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,15 +37,15 @@
   <section class="hero">
     <div class="hero-copy">
       <h1>أحذية فاخرة<br>على مقاسك</h1>
-      <p class="hero-sub">FENDI وBrunello Cucinelli وماركات عالمية مختارة.<br>توصيل داخل طرابلس وخارجها، والدفع نقداً أو موبي كاش.</p>
+      <p class="hero-sub">موديلات تواكب كل الصيحات، من الكلاسيكي إلى الرياضي، وبأكثر من لون.<br>توصيل داخل طرابلس وخارجها، والدفع نقداً أو موبي كاش.</p>
       <div class="hero-actions">
         <a href="#collection" class="btn btn-solid">شوف الكولكشن</a>
         <a href="#contact" class="btn btn-line">راسلنا على واتساب</a>
       </div>
-      <div class="ruler ruler-hero" aria-label="المقاسات المتوفرة من 40 إلى 45">
-        <span>40</span><span>41</span><span>42</span><span>43</span><span>44</span><span>45</span>
+      <div class="ruler ruler-hero" aria-label="المقاسات المتوفرة من 41 إلى 45">
+        <span>41</span><span>42</span><span>43</span><span>44</span><span>45</span>
       </div>
-      <p class="ruler-caption">المقاسات من 40 إلى 45</p>
+      <p class="ruler-caption">المقاسات من 41 إلى 45</p>
     </div>
     <div class="hero-media" id="hero-imgs">
       <div class="hero-img-cell hero-main"><div class="placeholder">X</div></div>
@@ -58,7 +58,7 @@
   <section class="collection" id="collection">
     <div class="section-head">
       <h2>الكولكشن</h2>
-      <p>اضغط على أي حذاء لتشوف صوره وتختار مقاسك.</p>
+      <p>اضغط على أي حذاء لتشوف صوره وتختار لونك ومقاسك.</p>
     </div>
     <div id="products-grid"></div>
     <div class="empty-state" id="empty-state" style="display:none">
@@ -74,7 +74,7 @@
 
   <section class="about" id="about">
     <h2>عن X Shoes</h2>
-    <p>متجر في جنزور متخصص في الأحذية الرجالية الفاخرة. نختار كل موديل بأنفسنا، ونوصله لك بمقاسك داخل طرابلس وخارجها.</p>
+    <p>متجر في جنزور للأحذية الرجالية. نتابع الصيحات أول بأول ونختار كل موديل بأنفسنا، ونوصله لك بلونك ومقاسك داخل طرابلس وخارجها.</p>
     <p class="address">جنزور، السيمافرو — شارع سليمان خاطر</p>
   </section>
 
@@ -111,6 +111,10 @@
       <h2 class="modal-name" id="modal-name"></h2>
       <div class="modal-price" id="modal-price"></div>
       <p class="modal-desc" id="modal-desc"></p>
+      <div id="modal-colors-wrap" style="display:none">
+        <div class="modal-size-label">اللون: <span id="modal-color-name"></span></div>
+        <div class="modal-colors" id="modal-colors"></div>
+      </div>
       <div class="modal-size-label">اختر مقاسك</div>
       <div class="modal-sizes ruler" id="modal-sizes"></div>
       <div class="modal-stock-note" id="modal-stock-note"></div>
