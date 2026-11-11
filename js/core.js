@@ -32,6 +32,23 @@
     return Number.isFinite(n) ? n : 0;
   }
 
+  /** المقاسات من نص أو مصفوفة: تُفصل بالفاصلة/الفاصلة العربية/المسافة/الشرطة/الشرطة المائلة،
+   *  وبالنقطة فقط إذا كانت أرقاماً من خانتين متتالية (40.41.42) حتى يبقى 42.5 مقاساً واحداً */
+  function parseSizes(raw) {
+    const list = Array.isArray(raw) ? raw : [raw];
+    const out = [];
+    list.forEach((v) => {
+      String(v === null || v === undefined ? "" : v).replace(/[٠-٩]/g, (d) => AR_DIGITS[d])
+        .split(/[,،\s\/\-]+/).forEach((tok) => {
+          (/^\d{2}(\.\d{2})+$/.test(tok) ? tok.split(".") : [tok]).forEach((t) => {
+            t = t.trim();
+            if (t && !out.includes(t)) out.push(t);
+          });
+        });
+    });
+    return out;
+  }
+
   // ── المخزون: product.stock = { 'مقاس': عدد } — غيابه يعني منتجاً بلا تتبّع (غير محدود)
   function tracked(p) {
     return !!(p && p.stock && typeof p.stock === 'object');
@@ -46,7 +63,7 @@
   }
   function isSoldOut(p) {
     if (!tracked(p)) return false;
-    const sizes = (p.sizes && p.sizes.length ? p.sizes : Object.keys(p.stock));
+    const sizes = parseSizes(p.sizes).length ? parseSizes(p.sizes) : Object.keys(p.stock);
     return sizes.every((s) => stockOf(p, s) === 0);
   }
 
@@ -205,7 +222,7 @@
 
   return {
     STATUSES, TRANSITIONS, MAX_QTY_PER_LINE, DEFAULT_PASSWORD,
-    esc, num, stockOf, sizeAvailable, isSoldOut,
+    esc, num, parseSizes, stockOf, sizeAvailable, isSoldOut,
     normalizeCart, cartAdd, cartCount, cartTotal, linePrice,
     normalizePhone, validateCustomer, orderCode, buildOrder, orderMessage,
     applyStock, canTransition, makePasswordRecord, verifyPassword,

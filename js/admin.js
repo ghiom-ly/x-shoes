@@ -103,7 +103,7 @@ function thumbOf(p) { return p.thumb || (p.images && p.images[0]) || ''; }
 
 function stockSummary(p) {
   if (!p.stock) return 'المخزون: غير مُتتبَّع';
-  const sizes = (p.sizes && p.sizes.length) ? p.sizes : Object.keys(p.stock);
+  const sizes = XS.parseSizes(p.sizes).length ? XS.parseSizes(p.sizes) : Object.keys(p.stock);
   return 'المخزون: ' + sizes.map((s) => `${esc(s)}:<b style="color:${XS.stockOf(p, s) ? 'inherit' : '#e05555'}">${XS.stockOf(p, s)}</b>`).join(' · ');
 }
 
@@ -123,7 +123,7 @@ function renderList() {
     return `<div class="prod-row">
       ${img}
       <div><div class="pr-name">${esc(p.name)}</div>
-        <div class="pr-meta">${esc(p.brand || 'X Shoes')} · مقاسات: ${esc((p.sizes || []).join(', '))}${legacy}</div>
+        <div class="pr-meta">${esc(p.brand || 'X Shoes')} · مقاسات: ${esc(XS.parseSizes(p.sizes).join(', '))}${legacy}</div>
         <div class="pr-meta">${stockSummary(p)}</div></div>
       <div class="pr-price">${p.showPrice && p.price ? esc(p.price) + ' د.ل' : '—'}</div>
       <div class="pr-badge ${esc(badge)}">${badgeLabel}</div>
@@ -146,7 +146,7 @@ function updateStats() {
 
 // ── STOCK FORM ──
 function formSizes() {
-  return document.getElementById('f-sizes').value.split(/[,،]/).map((s) => s.trim()).filter(Boolean);
+  return XS.parseSizes(document.getElementById('f-sizes').value);
 }
 function renderStockInputs(stock) {
   const box = document.getElementById('stock-inputs');
@@ -272,7 +272,7 @@ async function editProduct(id) {
   document.getElementById('f-brand').value = p.brand || '';
   document.getElementById('f-desc').value = p.desc || '';
   document.getElementById('f-price').value = p.price || '';
-  document.getElementById('f-sizes').value = (p.sizes || []).join(',');
+  document.getElementById('f-sizes').value = XS.parseSizes(p.sizes).join(',');
   document.getElementById('f-badge').value = p.badge || '';
   document.getElementById('t-price').classList.toggle('on', !!p.showPrice);
   document.getElementById('t-stock').classList.toggle('on', !!p.stock);

@@ -67,8 +67,9 @@ function renderProducts() {
     const badge = soldOut ? '<div class="prod-badge soldout">نفد</div>'
       : (p.badge ? `<div class="prod-badge ${esc(p.badge)}">${esc(BADGES[p.badge] || p.badge)}</div>` : '');
     const price = showPrice(p) ? `<div class="prod-price">${esc(p.price)}<small>د.ل</small></div>` : '<div></div>';
-    const sizes = (p.sizes || []).slice(0, 4).map((s) => `<div class="prod-size">${esc(s)}</div>`).join('');
-    const more = (p.sizes || []).length > 4 ? `<div class="prod-size">+${(p.sizes || []).length - 4}</div>` : '';
+    const allSizes = XS.parseSizes(p.sizes);
+    const sizes = allSizes.slice(0, 4).map((s) => `<div class="prod-size">${esc(s)}</div>`).join('');
+    const more = allSizes.length > 4 ? `<div class="prod-size">+${allSizes.length - 4}</div>` : '';
     return `<div class="prod-card reveal${soldOut ? ' soldout' : ''}" data-id="${esc(p.id)}">
       <div class="prod-img">${img}${badge}</div>
       <div class="prod-body">
@@ -156,7 +157,8 @@ async function openModal(id) {
 
 function renderModalSizes() {
   const p = currentProduct;
-  const sizes = (p.sizes && p.sizes.length) ? p.sizes : ['40', '41', '42', '43', '44', '45'];
+  const parsed = XS.parseSizes(p.sizes);
+  const sizes = parsed.length ? parsed : ['40', '41', '42', '43', '44', '45'];
   const box = document.getElementById('modal-sizes');
   box.innerHTML = '';
   sizes.forEach((s) => {

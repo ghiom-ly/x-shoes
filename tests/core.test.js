@@ -135,3 +135,17 @@ test('كلمة المرور: تشفير PBKDF2 والتحقق', async () => {
   assert.equal(await XS.verifyPassword('xshoes2026', null), true, 'بدون سجل: كلمة المرور الافتراضية القديمة');
   assert.equal(await XS.verifyPassword('other', null), false);
 });
+
+test('المقاسات: تُفصل بالنقطة والفاصلة والمسافة، ونصف المقاس يبقى', () => {
+  assert.deepEqual(XS.parseSizes(['40.41.42.43.44.45']), ['40', '41', '42', '43', '44', '45']);
+  assert.deepEqual(XS.parseSizes('40,41، 42 43/44'), ['40', '41', '42', '43', '44']);
+  assert.deepEqual(XS.parseSizes(['40', '42.5', '43']), ['40', '42.5', '43']);
+  assert.deepEqual(XS.parseSizes('٤٠-٤١'), ['40', '41']);
+  assert.deepEqual(XS.parseSizes(['40', '40', '']), ['40']);
+  assert.deepEqual(XS.parseSizes(null), []);
+});
+
+test('المنتج القديم بمقاسات ملتصقة يُقرأ صحيحاً في المخزون', () => {
+  const p = { id: 'p', sizes: ['40.41.42'], stock: { 40: 0, 41: 0, 42: 0 } };
+  assert.equal(XS.isSoldOut(p), true);
+});
