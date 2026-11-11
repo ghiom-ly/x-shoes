@@ -193,3 +193,22 @@ test('الألوان: مفتاح المخزون', () => {
   assert.equal(XS.stockKey('41', ''), '41');
   assert.equal(XS.stockKey('41'), '41');
 });
+
+test('الأقسام: تنظيف القائمة من الفراغات والتكرار والطول الزايد', () => {
+  assert.deepEqual(XS.normalizeCategories([' نايك ', 'Nike', 'نايك', '', null, 'أديداس']), ['نايك', 'Nike', 'أديداس']);
+  assert.equal(XS.normalizeCategories(['x'.repeat(50)])[0].length, 30);
+  assert.equal(XS.normalizeCategories(Array.from({ length: 40 }, (_, i) => 'ق' + i)).length, 24);
+  assert.deepEqual(XS.normalizeCategories(undefined), []);
+});
+
+test('الأقسام: العدّ يظهر بس الأقسام اللي فيها منتجات وبنفس ترتيب القائمة', () => {
+  const ps = [shoe({ id: 'a', category: 'أديداس' }), shoe({ id: 'b', category: 'نايك' }), shoe({ id: 'c', category: 'نايك' }), shoe({ id: 'd' }), shoe({ id: 'e', category: 'قسم محذوف' })];
+  assert.deepEqual(XS.categoryCounts(ps, ['نايك', 'بوما', 'أديداس']), [{ name: 'نايك', count: 2 }, { name: 'أديداس', count: 1 }]);
+});
+
+test('الأقسام: الفلترة — فارغ يعني الكل', () => {
+  const ps = [shoe({ id: 'a', category: 'نايك' }), shoe({ id: 'b', category: 'أديداس' }), shoe({ id: 'c' })];
+  assert.deepEqual(XS.filterByCategory(ps, 'نايك').map((p) => p.id), ['a']);
+  assert.equal(XS.filterByCategory(ps, '').length, 3);
+  assert.equal(XS.filterByCategory(ps, null).length, 3);
+});

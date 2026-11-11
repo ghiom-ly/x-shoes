@@ -62,6 +62,8 @@
 
           <label class="fl" for="f-name">اسم المنتج</label>
           <input class="inp" id="f-name" required>
+          <label class="fl" for="f-category">القسم <small>تضيف الأقسام من الإعدادات</small></label>
+          <select class="inp" id="f-category"><option value="">بدون قسم</option></select>
           <label class="fl" for="f-brand">الماركة</label>
           <input class="inp" id="f-brand" placeholder="اسم الماركة">
           <label class="fl" for="f-desc">الوصف</label>
@@ -136,6 +138,15 @@
           <label class="fl" for="cfg-new-pass">كلمة مرور جديدة (6 أحرف على الأقل)</label>
           <input class="inp" type="password" id="cfg-new-pass" autocomplete="new-password">
           <button class="btn btn-solid" onclick="changePass()">تغيير كلمة المرور</button>
+        </div>
+        <div class="setting-card setting-wide">
+          <h4>الأقسام</h4>
+          <p class="hint">الأقسام تظهر في أول الموقع جنب العنوان، والزبون يضغط على قسم ويشوف موديلاته بس. القسم اللي ما فيه منتجات ما يظهرش للزبون.</p>
+          <div class="cat-chips" id="cat-chips"></div>
+          <form class="cat-add" onsubmit="event.preventDefault(); addCategory();">
+            <input class="inp" id="cat-new" maxlength="30" placeholder="اسم القسم، مثلاً: نايك" aria-label="اسم القسم الجديد">
+            <button class="btn btn-solid" type="submit">إضافة قسم</button>
+          </form>
         </div>
         <div class="setting-card setting-wide">
           <h4>صور الواجهة</h4>

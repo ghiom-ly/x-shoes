@@ -71,6 +71,7 @@ async function loadSettings() {
     document.getElementById('cfg-hero').value = DEFAULT_HERO;
     if (doc.exists) {
       storeSettings = doc.data();
+      categories = XS.normalizeCategories(storeSettings.categories);
       document.getElementById('cfg-phone').value = storeSettings.phone || '0920007485';
       document.getElementById('cfg-address').value = storeSettings.address || 'جنزور سيمافرو';
       document.getElementById('cfg-delivery').value = storeSettings.delivery || 'توصيل داخل وخارج طرابلس';
@@ -78,6 +79,51 @@ async function loadSettings() {
       if (storeSettings.showPrices === false) document.getElementById('cfg-show-prices').classList.remove('on');
     }
   } catch (e) { console.log(e); }
+  renderCategories();
+}
+
+// ── الأقسام ──
+let categories = [];
+function renderCategories() {
+  const box = document.getElementById('cat-chips');
+  box.innerHTML = categories.length
+    ? categories.map((c, i) => {
+      const n = products.filter((p) => p.category === c).length;
+      return `<span class="cat-chip">${esc(c)} <small>${n}</small><button type="button" data-del="${i}" aria-label="${esc('حذف قسم ' + c)}">✕</button></span>`;
+    }).join('')
+    : '<p class="hint">ما فيش أقسام بعد.</p>';
+  box.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', () => deleteCategory(+b.dataset.del)));
+  // قائمة الاختيار في نموذج المنتج
+  const sel = document.getElementById('f-category');
+  const cur = sel.value;
+  const opts = cur && !categories.includes(cur) ? [...categories, cur] : categories;
+  sel.innerHTML = '<option value="">بدون قسم</option>' + opts.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  sel.value = cur;
+}
+async function saveCategories(next, msg) {
+  try {
+    await db.collection('settings').doc('store').set({ categories: next, updatedAt: FV.serverTimestamp() }, { merge: true });
+    categories = next;
+    renderCategories();
+    showToast(msg);
+  } catch (e) { console.error(e); showToast('خطأ في الحفظ'); }
+}
+function addCategory() {
+  const inp = document.getElementById('cat-new');
+  const name = inp.value.trim();
+  if (!name) { showToast('اكتب اسم القسم'); return; }
+  if (categories.includes(name)) { showToast('القسم موجود'); return; }
+  const next = XS.normalizeCategories([...categories, name]);
+  if (next.length === categories.length) { showToast('وصلت للحد الأقصى من الأقسام'); return; }
+  inp.value = '';
+  saveCategories(next, 'تمت إضافة القسم');
+}
+function deleteCategory(i) {
+  const c = categories[i];
+  const n = products.filter((p) => p.category === c).length;
+  const warn = n ? `\n${n} منتج في هذا القسم يرجعوا «بدون قسم» ويظهروا في «الكل» بس.` : '';
+  if (!confirm(`تحذف قسم «${c}»؟${warn}`)) return;
+  saveCategories(categories.filter((_, k) => k !== i), 'انحذف القسم');
 }
 
 async function saveSettings() {
@@ -90,7 +136,7 @@ async function saveSettings() {
     updatedAt: FV.serverTimestamp(),
   };
   try {
-    await db.collection('settings').doc('store').set(settings);
+    await db.collection('settings').doc('store').set(settings, { merge: true });
     showToast('تم حفظ الإعدادات');
   } catch (e) { showToast('خطأ في الحفظ'); console.error(e); }
 }
@@ -101,6 +147,7 @@ function loadProducts() {
     products = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     renderList();
     updateStats();
+    renderCategories();
   }, (e) => console.error(e));
 }
 
@@ -132,7 +179,7 @@ function renderList() {
     return `<div class="prod-row">
       ${img}
       <div><div class="pr-name">${esc(p.name)}</div>
-        <div class="pr-meta">${esc(p.brand || 'X Shoes')} — مقاسات ${esc(XS.parseSizes(p.sizes).join('، '))}${legacy}</div>
+        <div class="pr-meta">${p.category ? `<b>${esc(p.category)}</b> — ` : ''}${esc(p.brand || 'X Shoes')} — مقاسات ${esc(XS.parseSizes(p.sizes).join('، '))}${legacy}</div>
         <div class="pr-meta">${stockSummary(p)}</div></div>
       <div class="pr-price">${p.showPrice && p.price ? esc(p.price) + ' د.ل' : '—'}</div>
       <div class="pr-badge ${esc(badge)}">${badgeLabel}</div>
@@ -326,6 +373,7 @@ async function submitProduct() {
     const data = {
       name,
       brand: document.getElementById('f-brand').value.trim() || 'X Shoes',
+      category: document.getElementById('f-category').value || FV.delete(),
       desc: document.getElementById('f-desc').value.trim(),
       price: document.getElementById('f-price').value.trim(),
       showPrice: document.getElementById('t-price').classList.contains('on'),
@@ -343,6 +391,7 @@ async function submitProduct() {
       data.createdAt = FV.serverTimestamp();
       if (!stock) delete data.stock;
       if (!cleanColors().length) delete data.colors;
+      if (!document.getElementById('f-category').value) delete data.category;
       ref = await db.collection('products').add(data);
     }
     await writeImages(ref, uploadedImgs, editingId ? editingImageCount : 0);
@@ -363,6 +412,9 @@ async function editProduct(id) {
   editingImageCount = p.imageCount || 0;
   document.getElementById('f-name').value = p.name || '';
   document.getElementById('f-brand').value = p.brand || '';
+  const sel = document.getElementById('f-category');
+  if (p.category && !categories.includes(p.category)) sel.insertAdjacentHTML('beforeend', `<option value="${esc(p.category)}">${esc(p.category)}</option>`);
+  sel.value = p.category || '';
   document.getElementById('f-desc').value = p.desc || '';
   document.getElementById('f-price').value = p.price || '';
   document.getElementById('f-sizes').value = XS.parseSizes(p.sizes).join(',');
@@ -392,7 +444,7 @@ function cancelEdit() {
 }
 
 function resetForm() {
-  ['f-name', 'f-brand', 'f-desc', 'f-price', 'f-sizes'].forEach((id) => { document.getElementById(id).value = ''; });
+  ['f-name', 'f-brand', 'f-desc', 'f-price', 'f-sizes', 'f-category'].forEach((id) => { document.getElementById(id).value = ''; });
   document.getElementById('f-badge').value = '';
   document.getElementById('t-price').classList.add('on');
   document.getElementById('t-stock').classList.add('on');

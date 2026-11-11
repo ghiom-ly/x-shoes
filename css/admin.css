@@ -142,6 +142,13 @@ textarea.inp { resize: vertical; }
 .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
 .setting-card { padding: 20px; background: var(--white); border: 1px solid var(--line); }
 .setting-wide { grid-column: 1 / -1; }
+.cat-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.cat-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 6px 4px 12px; background: var(--surface); border: 1px solid var(--line); font-size: .9rem; }
+.cat-chip small { color: var(--graphite); font-variant-numeric: tabular-nums; }
+.cat-chip button { border: 0; background: none; color: var(--graphite); cursor: pointer; padding: 2px 6px; font-size: .8rem; }
+.cat-chip button:hover { color: var(--oxblood); }
+.cat-add { display: flex; gap: 8px; flex-wrap: wrap; }
+.cat-add .inp { flex: 1 1 200px; margin: 0; }
 .hero-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; }
 .hero-slot { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .hero-slot .btn-sm { margin-bottom: 0; }

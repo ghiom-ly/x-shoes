@@ -245,11 +245,32 @@
     return h === rec.hash;
   }
 
+  // ── الأقسام (الموديلات) ──
+  const MAX_CATEGORIES = 24;
+  function normalizeCategories(list) {
+    const out = [];
+    for (const c of Array.isArray(list) ? list : []) {
+      const name = String(c == null ? '' : c).trim().slice(0, 30);
+      if (name && !out.includes(name)) out.push(name);
+      if (out.length >= MAX_CATEGORIES) break;
+    }
+    return out;
+  }
+  function categoryCounts(products, categories) {
+    return normalizeCategories(categories)
+      .map((name) => ({ name, count: (products || []).filter((p) => p.category === name).length }))
+      .filter((c) => c.count > 0);
+  }
+  function filterByCategory(products, category) {
+    return category ? (products || []).filter((p) => p.category === category) : (products || []);
+  }
+
   return {
     STATUSES, TRANSITIONS, MAX_QTY_PER_LINE, DEFAULT_PASSWORD,
     esc, num, parseSizes, colorsOf, hasColors, stockKey, stockOf, sizeList, sizeAvailable, colorAvailable, isSoldOut,
     normalizeCart, cartAdd, cartCount, cartTotal, linePrice,
     normalizePhone, validateCustomer, orderCode, buildOrder, orderMessage,
     applyStock, canTransition, makePasswordRecord, verifyPassword,
+    normalizeCategories, categoryCounts, filterByCategory,
   };
 });

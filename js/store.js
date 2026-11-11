@@ -36,12 +36,14 @@ function applySettings() {
   const hero = String(storeSettings.heroText || '').trim();
   if (hero) { const el = document.getElementById('hero-sub'); el.textContent = hero; el.style.whiteSpace = 'pre-line'; }
   updateHeroImgs();
+  renderCategories();
 }
 
 // ── PRODUCTS (REALTIME) ──
 function loadProducts() {
   db.collection('products').orderBy('createdAt', 'desc').onSnapshot((snap) => {
     products = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    renderCategories();
     renderProducts();
     updateHeroImgs();
     hideLoading();
@@ -59,13 +61,37 @@ function hideLoading() {
 function thumbOf(p) { return p.thumb || (p.images && p.images[0]) || ''; }
 
 const BADGES = { new: 'جديد', sale: 'تخفيض', exclusive: 'حصري' };
+// ── الأقسام ──
+let currentCategory = '';
+function renderCategories() {
+  const cats = XS.categoryCounts(products, storeSettings.categories);
+  if (currentCategory && !cats.some((c) => c.name === currentCategory)) currentCategory = '';
+  const nav = document.getElementById('cat-nav');
+  const bar = document.getElementById('cat-bar');
+  nav.hidden = bar.hidden = !cats.length;
+  nav.innerHTML = cats.map((c) => `<button type="button" data-cat="${esc(c.name)}">${esc(c.name)}<sup>${c.count}</sup></button>`).join('');
+  bar.innerHTML = [{ name: '', label: 'الكل', count: products.length }, ...cats.map((c) => ({ ...c, label: c.name }))]
+    .map((c) => `<button type="button" data-cat="${esc(c.name)}" aria-pressed="${c.name === currentCategory}">${esc(c.label)} <small>${c.count}</small></button>`).join('');
+  document.querySelectorAll('#cat-nav [data-cat], #cat-bar [data-cat]').forEach((b) => b.addEventListener('click', () => {
+    selectCategory(b.dataset.cat, b.closest('#cat-nav') !== null);
+  }));
+}
+function selectCategory(name, scroll) {
+  currentCategory = name;
+  document.getElementById('collection-title').textContent = name || 'الكولكشن';
+  renderCategories();
+  renderProducts();
+  if (scroll) document.getElementById('collection').scrollIntoView({ behavior: 'smooth' });
+}
+
 function renderProducts() {
   const grid = document.getElementById('products-grid');
   const empty = document.getElementById('empty-state');
   if (!products.length) { grid.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
+  const shown = XS.filterByCategory(products, currentCategory);
 
-  grid.innerHTML = products.map((p) => {
+  grid.innerHTML = shown.map((p) => {
     const soldOut = XS.isSoldOut(p);
     const t = thumbOf(p);
     const img = t ? `<img src="${esc(t)}" alt="${esc(p.name)}" loading="lazy">` : '<div class="prod-placeholder">X</div>';
